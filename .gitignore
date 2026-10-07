@@ -28,6 +28,8 @@ captures/
 Thumbs.db
 desktop.ini
 
+docs/catalog.json
+
 # ===== Logs y temporales =====
 *.log
 *.tmp
