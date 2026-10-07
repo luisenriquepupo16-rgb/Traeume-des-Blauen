@@ -34,7 +34,7 @@ output_formats:
   - DOC
   - DOCX
 restrictions: null
-dedication: Para mi amiga, que ya no tendrá que pelearse con panfletos de conferencias.
+dedication: *Para mi amiga, que ya no tendrá que pelearse con panfletos de conferencias.
 github: https://github.com/luisenriquepupo16-rgb
 ---
 
