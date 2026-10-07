@@ -1,0 +1,150 @@
+name: Release Apps and Build Catalog
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**'
+  workflow_dispatch:
+
+jobs:
+  release-apps:
+    name: Create/Update GitHub Releases
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    outputs:
+      changed_apps: ${{ steps.detect.outputs.changed_apps }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Install powershell-yaml
+        shell: pwsh
+        run: Install-Module -Name powershell-yaml -Scope CurrentUser -Force
+
+      - name: Detect changed apps
+        id: detect
+        shell: pwsh
+        run: |
+          # Obtener archivos cambiados en el último commit
+          $changed = git diff --name-only HEAD~1 HEAD
+          $appIds = @()
+          foreach ($file in $changed) {
+            if ($file -match '^apps/([^/]+)/') {
+              $appIds += $Matches[1]
+            }
+          }
+          $appIds = $appIds | Sort-Object -Unique
+          Write-Host "Apps cambiadas: $($appIds -join ', ')"
+          $json = $appIds | ConvertTo-Json -Compress
+          if ($appIds.Count -eq 0) { $json = '[]' }
+          "changed_apps=$json" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Create releases for changed apps
+        if: steps.detect.outputs.changed_apps != '[]'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $appIds = '${{ steps.detect.outputs.changed_apps }}' | ConvertFrom-Json
+          foreach ($appId in $appIds) {
+            Write-Host "`n=== Procesando $appId ===" -ForegroundColor Cyan
+
+            $appDir = "apps/$appId"
+            $infoPath = "$appDir/info.md"
+            if (-not (Test-Path $infoPath)) {
+              Write-Warning "No hay info.md en $appDir"
+              continue
+            }
+
+            # Leer frontmatter para obtener la version
+            $bytes = [System.IO.File]::ReadAllBytes($infoPath)
+            $content = [System.Text.Encoding]::UTF8.GetString($bytes)
+            if ($content -notmatch '(?s)^\s*---\s*\r?\n(.*?)\r?\n---') {
+              Write-Warning "Frontmatter invalido en $infoPath"
+              continue
+            }
+            $meta = ConvertFrom-Yaml $Matches[1]
+            $version = $meta.version
+            $appName = $meta.name
+
+            $tag = "${appId}_v$version"
+            Write-Host "Tag: $tag"
+
+            # Buscar APK
+            $apk = Get-ChildItem -Path $appDir -Filter "*.apk" | Select-Object -First 1
+            if (-not $apk) {
+              Write-Warning "No hay APK en $appDir"
+              continue
+            }
+
+            # Ver si el release ya existe
+            $existing = gh release view $tag 2>$null
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "Release $tag ya existe. Eliminando para recrear..." -ForegroundColor Yellow
+              gh release delete $tag --yes --cleanup-tag
+            }
+
+            # Crear release y subir assets
+            Write-Host "Creando release $tag..."
+            $releaseArgs = @(
+              "release", "create", $tag,
+              "--title", "$appName $version",
+              "--notes", "Release automatico de $appName version $version",
+              "--latest"
+            )
+
+            # Assets: APK + icono si existe
+            $assets = @($apk.FullName)
+            $iconPath = "$appDir/icon.png"
+            if (Test-Path $iconPath) {
+              $assets += (Resolve-Path $iconPath).Path
+            }
+
+            gh @releaseArgs @assets
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "Fallo al crear el release $tag"
+            }
+
+            Write-Host "Release $tag creado con $($assets.Count) assets." -ForegroundColor Green
+          }
+
+  build-catalog:
+    name: Regenerate catalog.json
+    needs: release-apps
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Install powershell-yaml
+        shell: pwsh
+        run: Install-Module -Name powershell-yaml -Scope CurrentUser -Force
+
+      - name: Generate catalog.json
+        shell: pwsh
+        run: ./scripts/Generate-Catalog.ps1
+
+      - name: Commit catalog.json if changed
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/catalog.json
+          if (git diff --cached --quiet) {
+            Write-Host "Sin cambios en catalog.json"
+          } else {
+            git commit -m "chore: regenerate catalog.json [skip ci]"
+            git push
+          }

@@ -6,6 +6,8 @@
     busca el APK y el icon.png, calcula el SHA-256 del APK, y produce
     un JSON con toda la información para el catálogo web y la futura app.
 
+    Las URLs de descarga apuntan a GitHub Releases, con tag <app-id>_v<version>.
+
     Si ya existe un catalog.json previo, lo elimina antes de generar el nuevo.
 .NOTES
     Requiere el módulo powershell-yaml:
@@ -16,7 +18,7 @@
 param(
     [string]$AppsDir      = "apps",
     [string]$OutputFile   = "docs/catalog.json",
-    [string]$BaseUrl      = "https://luisenriquepupo16-rgb.github.io/Traeume-des-Blauen",
+    [string]$ReleasesBase = "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download",
     [string]$SiteTitle    = "Traeume des Blauen",
     [string]$Author       = "Dreamer",
     [string]$Github       = "luisenriquepupo16-rgb",
@@ -109,15 +111,19 @@ foreach ($folder in $appFolders) {
 
     # Icono (opcional)
     $iconFile = Join-Path $folder.FullName "icon.png"
+    $hasIcon = Test-Path $iconFile
+
+    # Tag del release: <app-id>_v<version>
+    $tag = "${appId}_v$($meta.version)"
+
+    # URLs apuntando al release
     $iconUrl = $null
-    if (Test-Path $iconFile) {
-        $iconUrl = "$BaseUrl/apps/$appId/icon.png"
+    if ($hasIcon) {
+        $iconUrl = "$ReleasesBase/$tag/icon.png"
     }
+    $apkUrl = "$ReleasesBase/$tag/$($apkFile.Name)"
 
-    # URL de descarga del APK
-    $apkUrl = "$BaseUrl/apps/$appId/$($apkFile.Name)"
-
-    # Extraer secciones del cuerpo (sin tildes para evitar problemas de codificacion)
+    # Extraer secciones del cuerpo
     $description = Get-MarkdownSection -Body $body -Heading "Description"
     if (-not $description) { $description = "" }
 
@@ -151,12 +157,13 @@ foreach ($folder in $appFolders) {
             size_bytes = $sizeBytes
             sha256     = $hash
         }
+        tag            = $tag
         updated_at     = $updatedAtApp
     }
 
     $apps += $appObj
     $sizeMb = [math]::Round($sizeBytes / 1MB, 2)
-    Write-Host "   OK ($($apkFile.Name), $sizeMb MB)" -ForegroundColor Green
+    Write-Host "   OK ($($apkFile.Name), $sizeMb MB, tag: $tag)" -ForegroundColor Green
 }
 
 # --- Construir objeto final ---
