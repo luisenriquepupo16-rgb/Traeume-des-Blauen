@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Träume des Blauen</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- OVERLAY DE DESCARGA -->
+<div class="download-overlay" id="downloadOverlay">
+    <div class="spinner"></div>
+    <p>⬇️ Descargando…</p>
+</div>
+
+<div class="container">
+    <header class="main-header">
+        <div>
+            <h1 id="siteTitle">💙 Träume des Blauen</h1>
+            <p id="siteSubtitle">Sueños de lo Azul — aplicaciones hechas con claridad.</p>
+        </div>
+        <div class="header-actions">
+            <button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+                🌙 Modo oscuro
+            </button>
+        </div>
+    </header>
+
+    <div class="content">
+        <!-- CATÁLOGO -->
+        <section>
+            <h2>Catálogo de aplicaciones</h2>
+
+            <div class="tabs" role="tablist" aria-label="Filtros de catálogo">
+                <button class="tab-btn active" role="tab" aria-selected="true" data-tab="todas" id="tab-todas">Todas</button>
+                <button class="tab-btn" role="tab" aria-selected="false" data-tab="populares" id="tab-populares">Populares</button>
+                <button class="tab-btn" role="tab" aria-selected="false" data-tab="nuevas" id="tab-nuevas">Nuevas</button>
+            </div>
+
+            <div class="search-filter-bar">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 Buscar aplicación..." aria-label="Buscar aplicaciones">
+                </div>
+                <div class="filter-tags" role="group" aria-label="Filtros por categoría">
+                    <span class="label">Categorías:</span>
+                    <div id="categoryFilters"></div>
+                </div>
+            </div>
+
+            <div id="cardsGrid" class="cards-grid" role="list"></div>
+        </section>
+
+        <!-- CONTACTO Y MÁS -->
+        <section>
+            <h2>Encarga tu propia aplicación</h2>
+            <p>Si quieres obtener una aplicación para tu propio uso o negocio, puedes encargarla haciendo contacto con el desarrollador.</p>
+            <div class="contact-links">
+                <a id="whatsappLink" href="#" class="btn-wa" target="_blank">📲 Contactar por WhatsApp</a>
+            </div>
+
+            <h3>¿Qué puedes personalizar?</h3>
+            <ul style="margin-left: 24px; color: var(--muted);">
+                <li><strong>Apariencia:</strong> colores, tipografía, organización.</li>
+                <li><strong>Funcionalidad:</strong> catálogo, carrito, pedidos por WhatsApp, búsquedas, filtros.</li>
+                <li><strong>Objetivo:</strong> negocio, emprendimiento, uso personal, educativo.</li>
+                <li><strong>Características detalladas:</strong> modo offline, lista de deseos, historial, panel admin.</li>
+            </ul>
+            <p style="margin-top: 16px;"><strong>⚠️</strong> No se garantiza poder crear la aplicación con todas las características si estas superan un cierto nivel de complejidad. Cada proyecto se evalúa caso por caso.</p>
+        </section>
+
+        <section>
+            <h2>¿Eres desarrollador?</h2>
+            <p>Contacta mediante un issue de GitHub. Se acepta feedback y sugerencias.</p>
+            <div class="contact-links">
+                <a id="githubLink" href="#" class="btn-gh" target="_blank">🐙 GitHub</a>
+            </div>
+        </section>
+
+        <section>
+            <h2>Para Cuba</h2>
+            <p>Esta es una página creada en Cuba, para usuarios cubanos. Se busca mejorar siempre un poco, en cualquier ámbito de la vida, y la tecnología no es la excepción.</p>
+        </section>
+
+        <section>
+            <h2>Condiciones de uso</h2>
+            <ol style="margin-left: 24px; color: var(--muted);">
+                <li>Todas las aplicaciones aquí expuestas son de libre descarga y distribución. No se alienta ninguna forma de monetización o mal uso.</li>
+                <li>Las aplicaciones encargadas serán expuestas aquí salvo excepciones (caso por caso).</li>
+                <li>El código fuente no se comparte a menos que se acuerde explícitamente.</li>
+                <li>Los tiempos de desarrollo se acuerdan antes de empezar, sin presiones innecesarias.</li>
+            </ol>
+        </section>
+
+        <footer>
+            <p>💙 Träume des Blauen — Aplicaciones sencillas, útiles y hechas con claridad.<br>
+            Desarrollador: Dreamer (Yozora) · Cuba · <span id="year"></span></p>
+        </footer>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+{
+    "version":  1,
+    "generated_at":  "2026-10-07T19:41:26Z",
+    "site":  {
+                 "title":  "Traeume des Blauen",
+                 "author":  "Dreamer",
+                 "github":  "luisenriquepupo16-rgb",
+                 "whatsapp":  "5354935996"
+             },
+    "apps":  [
+                 {
+                     "id":  "converty",
+                     "name":  "Converty",
+                     "version":  "1.2.0",
+                     "version_code":  5,
+                     "package":  "com.converty.neki",
+                     "category":  "Utilidades",
+                     "technologies":  [
+                                          "Kotlin",
+                                          "Apache POI",
+                                          "iText7",
+                                          "OpenCSV",
+                                          "Kotlin Coroutines",
+                                          "Foreground Service (dataSync)",
+                                          "Storage Access Framework (SAF)",
+                                          "Material Components 3",
+                                          "View Binding"
+                                      ],
+                     "input_formats":  [
+                                           "PPTX",
+                                           "DOCX",
+                                           "XLSX",
+                                           "PDF",
+                                           "CSV",
+                                           "TXT",
+                                           "MD",
+                                           "JSON",
+                                           "XML",
+                                           "HTML"
+                                       ],
+                     "output_formats":  [
+                                            "TXT",
+                                            "PDF",
+                                            "DOC",
+                                            "DOCX"
+                                        ],
+                     "min_android":  8,
+                     "min_sdk":  26,
+                     "target_sdk":  34,
+                     "restrictions":  null,
+                     "dedication":  "Para mi amiga, que ya no tendrá que pelearse con panfletos de conferencias.",
+                     "description":  "Aplicación Android que convierte documentos y presentaciones a formatos de texto, extrayendo el contenido de archivos como PPTX, DOCX, XLSX y PDF para generar una copia en TXT, PDF, DOC o DOCX.",
+                     "usage":  "1. Abre la app.\r\n2. Selecciona uno o varios archivos para convertir.\r\n3. Elige el formato de salida (TXT, PDF, DOC o DOCX).\r\n4. Espera a que termine la conversión.\r\n5. Encuentra los archivos generados en `Documentos/Converty/` o en el explorador interno.",
+                     "icon":  "https://luisenriquepupo16-rgb.github.io/Traeume-des-Blauen/apps/converty/icon.png",
+                     "apk":  {
+                                 "filename":  "converty_v1.2.0.apk",
+                                 "url":  "https://luisenriquepupo16-rgb.github.io/Traeume-des-Blauen/apps/converty/converty_v1.2.0.apk",
+                                 "size_bytes":  19626720,
+                                 "sha256":  "98e6b754b94285c99c6dca893017772d30b3a52e98dcb38436d92f50a5f8bc4d"
+                             },
+                     "updated_at":  "2026-10-07"
+                 }
+             ]
+}

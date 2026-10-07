@@ -1,0 +1,44 @@
+# ===== Android / Gradle =====
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+.gradle/
+build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# ===== Keystores (NUNCA subir) =====
+*.jks
+*.keystore
+
+# ===== IDE =====
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# ===== Sistema operativo =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== Logs y temporales =====
+*.log
+*.tmp
+*.bak
+temp/
+experimentales/
+otros/
+fallidos/
+
+# ===== PowerShell =====
+*.ps1.bak
+
+# ===== Excepción: los APK de apps SÍ se suben =====
+!apps/**/*.apk
