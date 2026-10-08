@@ -106,11 +106,8 @@ function selectCategory(cat) {
 function filterApps() {
     let filtered = [...appsData];
 
-    // Tab: populares / nuevas / todas
-    // (por ahora, "populares" y "nuevas" se basan en heurísticas simples)
-    if (currentTab === "populares") {
-        filtered.sort((a, b) => getDownloadCount(b.id) - getDownloadCount(a.id));
-    } else if (currentTab === "nuevas") {
+    // Tab: "Nuevas" ordena por fecha, "Todas" no ordena
+    if (currentTab === "nuevas") {
         filtered.sort((a, b) => (b.updated_at || "").localeCompare(a.updated_at || ""));
     }
 
@@ -137,35 +134,7 @@ function filterApps() {
 }
 
 // ================================================================
-// 6. CONTADOR DE DESCARGAS (localStorage)
-// ================================================================
-function getDownloadCount(appId) {
-    return parseInt(localStorage.getItem(`dl_${appId}`) || "0", 10);
-}
-
-function incrementDownload(appId) {
-    const current = getDownloadCount(appId);
-    localStorage.setItem(`dl_${appId}`, current + 1);
-    return current + 1;
-}
-
-// ================================================================
-// 7. RESEÑAS (localStorage)
-// ================================================================
-function getReviews(appId) {
-    const data = localStorage.getItem(`rev_${appId}`);
-    return data ? JSON.parse(data) : [];
-}
-
-function saveReview(appId, stars, comment) {
-    const reviews = getReviews(appId);
-    reviews.push({ stars, comment, date: new Date().toISOString() });
-    localStorage.setItem(`rev_${appId}`, JSON.stringify(reviews));
-    return reviews;
-}
-
-// ================================================================
-// 8. UTILIDADES DE FORMATO
+// 6. UTILIDADES DE FORMATO
 // ================================================================
 function formatSize(bytes) {
     if (!bytes) return "—";
@@ -184,7 +153,7 @@ function escapeHtml(str) {
 }
 
 // ================================================================
-// 9. RENDERIZADO DE TARJETAS
+// 7. RENDERIZADO DE TARJETAS
 // ================================================================
 function renderCards() {
     const apps = filterApps();
@@ -208,7 +177,6 @@ function renderCards() {
             iconHtml = `<img src="${escapeHtml(app.icon)}" alt="Icono de ${escapeHtml(app.name)}" onerror="this.parentElement.classList.add('emoji-fallback'); this.parentElement.textContent='📱';">`;
         } else {
             iconHtml = "📱";
-            card.querySelector(".card-icon")?.classList.add("emoji-fallback");
         }
 
         // --- Chips de tecnologías (máx. 5 para no saturar) ---
@@ -216,15 +184,6 @@ function renderCards() {
             .slice(0, 5)
             .map(t => `<span class="tech-chip">${escapeHtml(t)}</span>`)
             .join("");
-
-        // --- Reseñas ---
-        const reviews = getReviews(app.id);
-        const avgStars = reviews.length > 0
-            ? (reviews.reduce((s, r) => s + r.stars, 0) / reviews.length).toFixed(1)
-            : "—";
-
-        // --- Contador de descargas ---
-        const dlCount = getDownloadCount(app.id);
 
         // --- Dedicatoria ---
         const dedicationHtml = app.dedication
@@ -245,30 +204,12 @@ function renderCards() {
                 ${techChips ? `<div style="margin-top:8px;">${techChips}</div>` : ""}
             </div>
             ${dedicationHtml}
-            <div class="card-meta">
-                <span>⭐ ${avgStars} (${reviews.length})</span>
-                <span>⬇️ ${dlCount} descargas</span>
-            </div>
             <div class="card-actions">
                 <button class="card-btn" data-appid="${escapeHtml(app.id)}">
                     📥 Descargar
                 </button>
                 <button class="share-btn" data-share="wa" data-app="${escapeHtml(app.name)}" data-url="${escapeHtml(app.apk?.url || '')}">💬</button>
                 <button class="share-btn" data-share="tg" data-app="${escapeHtml(app.name)}" data-url="${escapeHtml(app.apk?.url || '')}">📲</button>
-            </div>
-            <div class="review-section">
-                <div class="review-stars" data-appid="${escapeHtml(app.id)}" role="group" aria-label="Calificar con estrellas">
-                    ${[1,2,3,4,5].map(s => `<span data-stars="${s}" role="button" tabindex="0" aria-label="${s} estrellas">★</span>`).join("")}
-                </div>
-                <div class="review-comment">
-                    <input type="text" placeholder="Deja un comentario..." data-appid="${escapeHtml(app.id)}" class="review-input">
-                    <button data-appid="${escapeHtml(app.id)}" class="review-submit">Enviar</button>
-                </div>
-                <div class="review-list" id="reviews-${escapeHtml(app.id)}">
-                    ${reviews.slice(-3).reverse().map(r =>
-                        `<div class="item">${"★".repeat(r.stars)} ${escapeHtml(r.comment || "Sin comentario")}</div>`
-                    ).join("")}
-                </div>
             </div>
         `;
 
@@ -279,7 +220,7 @@ function renderCards() {
 }
 
 // ================================================================
-// 10. EVENTOS DE LAS TARJETAS
+// 8. EVENTOS DE LAS TARJETAS
 // ================================================================
 function attachCardEvents() {
     // Descargar
@@ -292,11 +233,9 @@ function attachCardEvents() {
             const overlay = document.getElementById("downloadOverlay");
             overlay.classList.add("show");
 
-            incrementDownload(appId);
             window.open(app.apk.url, "_blank");
 
             setTimeout(() => overlay.classList.remove("show"), 1500);
-            renderCards();
         });
     });
 
@@ -316,50 +255,10 @@ function attachCardEvents() {
             if (shareUrl) window.open(shareUrl, "_blank");
         });
     });
-
-    // Estrellas
-    document.querySelectorAll(".review-stars").forEach(container => {
-        const stars = container.querySelectorAll("span");
-        stars.forEach(span => {
-            span.addEventListener("click", function () {
-                const val = parseInt(this.dataset.stars, 10);
-                stars.forEach(s => {
-                    s.classList.toggle("active", parseInt(s.dataset.stars, 10) <= val);
-                });
-            });
-            span.addEventListener("keydown", e => {
-                if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    span.click();
-                }
-            });
-        });
-    });
-
-    // Enviar reseña
-    document.querySelectorAll(".review-submit").forEach(btn => {
-        btn.addEventListener("click", function () {
-            const appId = this.dataset.appid;
-            const section = this.closest(".review-section");
-            const starsContainer = section.querySelector(".review-stars");
-            const input = section.querySelector(".review-input");
-            const comment = input.value.trim();
-            const activeStars = starsContainer.querySelectorAll("span.active").length;
-
-            if (activeStars === 0) {
-                alert("Selecciona al menos una estrella.");
-                return;
-            }
-            saveReview(appId, activeStars, comment);
-            input.value = "";
-            starsContainer.querySelectorAll("span").forEach(s => s.classList.remove("active"));
-            renderCards();
-        });
-    });
 }
 
 // ================================================================
-// 11. EVENTOS DE FILTROS (tabs, búsqueda)
+// 9. EVENTOS DE FILTROS (tabs, búsqueda)
 // ================================================================
 function attachFilterEvents() {
     document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -382,7 +281,7 @@ function attachFilterEvents() {
 }
 
 // ================================================================
-// 12. TEMA OSCURO
+// 10. TEMA OSCURO
 // ================================================================
 function initTheme() {
     const toggle = document.getElementById("themeToggle");
@@ -408,7 +307,7 @@ function initTheme() {
 }
 
 // ================================================================
-// 13. INICIO
+// 11. INICIO
 // ================================================================
 document.addEventListener("DOMContentLoaded", () => {
     initTheme();
