@@ -23,7 +23,7 @@ github: https://github.com/luisenriquepupo16-rgb
 
 ## Description
 
-Aplicación oficial del catálogo Träume des Blauen. Permite explorar, buscar y descargar todas las aplicaciones publicadas, con soporte offline, caché inteligente y actualización automática del contenido.
+Aplicación oficial del catálogo Träume des Blauen. Permite explorar, buscar y descargar todas las aplicaciones publicadas, con soporte offline, caché inteligente y actualización automática del contenido.*
 
 ## Uso
 

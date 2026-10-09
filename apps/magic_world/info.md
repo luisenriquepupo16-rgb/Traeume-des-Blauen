@@ -25,7 +25,7 @@ github: https://github.com/luisenriquepupo16-rgb
 
 ## Description
 
-Aplicación educativa para bebés y niños pequeños. Enseña vocabulario básico (animales, números, abecedario, colores, figuras, frutas, partes del cuerpo, emociones, naturaleza, familia, vehículos y música) con sonidos, voz en español y minijuegos interactivos.
+Aplicación educativa para bebés y niños pequeños. Enseña vocabulario básico (animales, números, abecedario, colores, figuras, frutas, partes del cuerpo, emociones, naturaleza, familia, vehículos y música) con sonidos, voz en español y minijuegos interactivos.*
 
 ## Uso
 
