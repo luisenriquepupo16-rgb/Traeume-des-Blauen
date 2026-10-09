@@ -1,4 +1,9 @@
+# ============================================================
+# .gitignore para Träume des Blauen
+# ============================================================
+
 # ===== Android / Gradle =====
+# Archivos generados por la compilación de Android
 *.apk
 *.aab
 *.ap_
@@ -12,10 +17,12 @@ captures/
 .cxx/
 
 # ===== Keystores (NUNCA subir) =====
+# Archivos de firma de aplicaciones Android
 *.jks
 *.keystore
 
 # ===== IDE =====
+# Carpetas y archivos generados por editores
 .idea/
 *.iml
 .vscode/
@@ -24,13 +31,17 @@ captures/
 .classpath
 
 # ===== Sistema operativo =====
+# Archivos generados por el sistema operativo
 .DS_Store
 Thumbs.db
 desktop.ini
 
+# ===== Catálogo generado automáticamente =====
+# Este archivo lo regenera el workflow de GitHub Actions
 docs/catalog.json
 
 # ===== Logs y temporales =====
+# Archivos temporales o de depuración
 *.log
 *.tmp
 *.bak
@@ -40,7 +51,16 @@ otros/
 fallidos/
 
 # ===== PowerShell =====
+# Backups y temporales de scripts
 *.ps1.bak
 
-# ===== Excepción: los APK de apps SÍ se suben =====
+# ===== Scripts de automatización local =====
+# Scripts que no forman parte del repositorio público
+push.ps1
+
+# ============================================================
+# EXCEPCIONES (deben ir al final)
+# ============================================================
+
+# Los APKs de apps SÍ se suben (están dentro de apps/)
 !apps/**/*.apk
