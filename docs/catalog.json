@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-10-09T06:25:31Z",
+  "generated_at": "2026-10-09T06:41:08Z",
   "site": {
     "title": "Traeume des Blauen",
     "author": "Dreamer",
@@ -87,7 +87,7 @@
       "dedication": "Para el primito más enérgico que he conocido.",
       "description": "Aplicación educativa para bebés y niños pequeños. Enseña vocabulario básico (animales, números, abecedario, colores, figuras, frutas, partes del cuerpo, emociones, naturaleza, familia, vehículos y música) con sonidos, voz en español y minijuegos interactivos.",
       "usage": "1. Abre la app.\r\n2. Explora las categorías deslizando la barra superior: Animales, Números, ABC, Colores, Figuras, Frutas, Cuerpo, Emociones, Naturaleza, Familia, Vehículos y Música.\r\n3. Toca cualquier tarjeta para escuchar su nombre y sonido.\r\n4. Pulsa \"🎮 Juegos\" para acceder a los minijuegos.\r\n5. Personaliza el perfil del niño tocando la barra de estrellas (nombre, edad, género y foto).\r\n6. Usa el bloqueo infantil (🔒) para evitar que el niño salga de la app.",
-      "icon": null,
+      "icon": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/magic_world_v2.1.10/icon.png",
       "apk": {
         "filename": "magic_world_v2.1.10.apk",
         "url": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/magic_world_v2.1.10/magic_world_v2.1.10.apk",
@@ -156,8 +156,8 @@
       "usage": "1. Abre la app.\r\n2. Explora el catálogo de aplicaciones disponibles.\r\n3. Usa la búsqueda o los filtros por categoría para encontrar lo que necesitas.\r\n4. Toca una tarjeta para ver los detalles de la app.\r\n5. Pulsa \"Descargar\" para instalar la app que te interese.\r\n6. Desliza hacia abajo o pulsa el botón de recargar para actualizar el catálogo.",
       "icon": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/traeume_des_blauen_v1.0.2/icon.png",
       "apk": {
-        "filename": "Träume_des_Blauen_v1.0.2.apk",
-        "url": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/traeume_des_blauen_v1.0.2/Träume_des_Blauen_v1.0.2.apk",
+        "filename": "traeume_des_blauen_v1.0.2.apk",
+        "url": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/traeume_des_blauen_v1.0.2/traeume_des_blauen_v1.0.2.apk",
         "size_bytes": 13710693,
         "sha256": "9959f18952d8195d743059db9b775f5f26cffc8436d63ff2d528001e0020a709"
       },
