@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-10-09T10:41:32Z",
+  "generated_at": "2026-10-10T04:32:40Z",
   "site": {
     "title": "Traeume des Blauen",
     "author": "Dreamer",
@@ -59,13 +59,13 @@
         "sha256": "98e6b754b94285c99c6dca893017772d30b3a52e98dcb38436d92f50a5f8bc4d"
       },
       "tag": "converty_v1.2.0",
-      "updated_at": "2026-10-09"
+      "updated_at": "2026-10-10"
     },
     {
       "id": "dibujama",
       "name": "Dibujama",
-      "version": "1.0.0",
-      "version_code": 1,
+      "version": "1.1.0",
+      "version_code": 2,
       "package": "com.dibujama.app",
       "category": "Galería",
       "technologies": [
@@ -85,15 +85,15 @@
       "dedication": "Para un Universo Creativo.",
       "description": "Aplicación oficial de la galería Dibujama. Explora los dibujos de la comunidad Universo Creativo, con soporte offline, caché inteligente y actualización automática del contenido.",
       "usage": "1. Abre la app.\r\n2. Explora la galería de dibujos.\r\n3. Usa la búsqueda para encontrar un dibujo por nombre o descripción.\r\n4. Toca cualquier dibujo para verlo en grande.\r\n5. Comparte tus dibujos favoritos con amigos.",
-      "icon": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/dibujama_v1.0.0/icon.png",
+      "icon": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/dibujama_v1.1.0/icon.png",
       "apk": {
-        "filename": "dibujama_v1.0.0.apk",
-        "url": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/dibujama_v1.0.0/dibujama_v1.0.0.apk",
-        "size_bytes": 13655605,
-        "sha256": "02bc9fe7204da4f8e77db6c51b2adf49bb14a418154cbd94cd643a93ae8d1043"
+        "filename": "dibujama_v1.1.0.apk",
+        "url": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/dibujama_v1.1.0/dibujama_v1.1.0.apk",
+        "size_bytes": 14400511,
+        "sha256": "bb33fd157afefd593c64d47e6414412f6572983f735b051ebb64df96f6094b19"
       },
-      "tag": "dibujama_v1.0.0",
-      "updated_at": "2026-10-09"
+      "tag": "dibujama_v1.1.0",
+      "updated_at": "2026-10-10"
     },
     {
       "id": "magic_world",
@@ -129,7 +129,7 @@
         "sha256": "996a5a68e6246d49becf8f07bcef4f276852e1027099e39e8d70515e6bdfac3d"
       },
       "tag": "magic_world_v2.1.10",
-      "updated_at": "2026-10-09"
+      "updated_at": "2026-10-10"
     },
     {
       "id": "mipy_caja",
@@ -162,7 +162,7 @@
         "sha256": "aa8a116498710e5962bfbd4cfe88276170effed29c7b251f4cc2a006b6bceb9b"
       },
       "tag": "mipy_caja_v2.2.21",
-      "updated_at": "2026-10-09"
+      "updated_at": "2026-10-10"
     },
     {
       "id": "traeume_des_blauen",
@@ -196,7 +196,7 @@
         "sha256": "9959f18952d8195d743059db9b775f5f26cffc8436d63ff2d528001e0020a709"
       },
       "tag": "traeume_des_blauen_v1.0.2",
-      "updated_at": "2026-10-09"
+      "updated_at": "2026-10-10"
     }
   ]
 }
