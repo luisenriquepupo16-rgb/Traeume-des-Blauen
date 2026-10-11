@@ -25,43 +25,59 @@ jobs:
         run: |
           set -e
 
-          # 1. Obtener todos los releases con sus assets
+          NOW_DATE=$(date -u +"%Y-%m-%d")
+          NOW_FULL=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "Fecha actual: $NOW_DATE ($NOW_FULL)"
+
+          # 1. Obtener releases
           echo "Consultando releases de $REPO..."
           RELEASES=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
             "https://api.github.com/repos/$REPO/releases?per_page=100")
 
-          # 2. Construir un JSON {tag: {name, count}} con jq
+          # 2. Construir {app: count} sumando solo APKs, agrupado por app
           CURRENT=$(echo "$RELEASES" | jq -c '
-            [.[] | {
-              key: .tag_name,
-              value: {
-                name: (.assets[0].name // "unknown"),
-                count: (.assets[0].download_count // 0)
+            [.[] | . as $release |
+              .assets[] |
+              select(.name | endswith(".apk")) |
+              {
+                app: ($release.tag_name | sub("_v[0-9.]+$"; "")),
+                count: .download_count
               }
-            }] | from_entries
+            ] | group_by(.app) | map({
+              key: .[0].app,
+              value: (map(.count) | add)
+            }) | from_entries
           ')
 
           echo "Conteo actual: $CURRENT"
 
-          # 3. Leer conteo anterior del Gist
-          PREVIOUS=$(curl -s -H "Authorization: Bearer $GIST_TOKEN" \
+          # 3. Leer Gist anterior
+          GIST_CONTENT=$(curl -s -H "Authorization: Bearer $GIST_TOKEN" \
             "https://api.github.com/gists/$GIST_ID" \
-            | jq -r '.files["downloads.json"].content // "{}"')
+            | jq -r '.files["downloads.json"].content // "{\"current\":{},\"daily\":{}}"')
 
-          echo "Conteo anterior: $PREVIOUS"
+          echo "Gist anterior: $GIST_CONTENT"
 
-          # 4. Comparar y construir mensajes
+          PREVIOUS=$(echo "$GIST_CONTENT" | jq -c '.current // {}')
+          DAILY=$(echo "$GIST_CONTENT" | jq -c '.daily // {}')
+
+          # 4. Comparar y construir mensajes + nuevos deltas del día
           MESSAGES=""
-          TAGS=$(echo "$CURRENT" | jq -r 'keys[]')
+          TODAY_DELTAS="{}"
+          APPS=$(echo "$CURRENT" | jq -r 'keys[]')
 
-          for TAG in $TAGS; do
-            OLD=$(echo "$PREVIOUS" | jq -r --arg t "$TAG" '.[$t].count // 0')
-            NEW=$(echo "$CURRENT"  | jq -r --arg t "$TAG" '.[$t].count // 0')
+          for APP in $APPS; do
+            OLD=$(echo "$PREVIOUS" | jq -r --arg a "$APP" '.[$a] // 0')
+            NEW=$(echo "$CURRENT"  | jq -r --arg a "$APP" '.[$a] // 0')
             DIFF=$((NEW - OLD))
 
             if [ "$DIFF" -gt 0 ]; then
-              APP=$(echo "$TAG" | sed 's/_v[0-9.]*$//')
               MESSAGES="${MESSAGES}📥 **${APP}** tiene **${DIFF}** nueva(s) descarga(s) (total: ${NEW})\n"
+
+              # Acumular delta del día
+              TODAY_DELTAS=$(echo "$TODAY_DELTAS" | jq -c \
+                --arg a "$APP" --argjson d "$DIFF" \
+                '.[$a] = ((.[$a] // 0) + $d)')
             fi
           done
 
@@ -78,9 +94,29 @@ jobs:
             echo "Sin novedades."
           fi
 
-          # 6. Actualizar el Gist con el conteo actual
+          # 6. Actualizar daily con los deltas de hoy
+          UPDATED_DAILY=$(jq -n \
+            --argjson daily "$DAILY" \
+            --arg date "$NOW_DATE" \
+            --argjson today "$TODAY_DELTAS" \
+            '
+            $daily as $d |
+            ($d[$date] // {}) as $existing |
+            $d + { ($date): (
+              ($existing | keys) + ($today | keys) | unique | 
+              map({ key: ., value: (($existing[.] // 0) + ($today[.] // 0)) }) |
+              from_entries
+            )}
+            ')
+
+          # 7. Construir nuevo Gist
+          NEW_GIST=$(jq -n \
+            --argjson current "$CURRENT" \
+            --argjson daily "$UPDATED_DAILY" \
+            '{ current: $current, daily: $daily }')
+
           echo "Actualizando Gist..."
-          GIST_BODY=$(jq -n --arg content "$CURRENT" '{
+          GIST_BODY=$(jq -n --arg content "$NEW_GIST" '{
             files: { "downloads.json": { content: $content } }
           }')
           curl -s -X PATCH \
