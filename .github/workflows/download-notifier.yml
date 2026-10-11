@@ -1,0 +1,92 @@
+name: Download Notifier
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  check-downloads:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Consultar descargas y notificar a Discord
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -e
+
+          # 1. Obtener todos los releases con sus assets
+          echo "Consultando releases de $REPO..."
+          RELEASES=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/$REPO/releases?per_page=100")
+
+          # 2. Construir un JSON {tag: {name, count}} con jq
+          CURRENT=$(echo "$RELEASES" | jq -c '
+            [.[] | {
+              key: .tag_name,
+              value: {
+                name: (.assets[0].name // "unknown"),
+                count: (.assets[0].download_count // 0)
+              }
+            }] | from_entries
+          ')
+
+          echo "Conteo actual: $CURRENT"
+
+          # 3. Leer conteo anterior del Gist
+          PREVIOUS=$(curl -s -H "Authorization: Bearer $GIST_TOKEN" \
+            "https://api.github.com/gists/$GIST_ID" \
+            | jq -r '.files["downloads.json"].content // "{}"')
+
+          echo "Conteo anterior: $PREVIOUS"
+
+          # 4. Comparar y construir mensajes
+          MESSAGES=""
+          TAGS=$(echo "$CURRENT" | jq -r 'keys[]')
+
+          for TAG in $TAGS; do
+            OLD=$(echo "$PREVIOUS" | jq -r --arg t "$TAG" '.[$t].count // 0')
+            NEW=$(echo "$CURRENT"  | jq -r --arg t "$TAG" '.[$t].count // 0')
+            DIFF=$((NEW - OLD))
+
+            if [ "$DIFF" -gt 0 ]; then
+              APP=$(echo "$TAG" | sed 's/_v[0-9.]*$//')
+              MESSAGES="${MESSAGES}📥 **${APP}** tiene **${DIFF}** nueva(s) descarga(s) (total: ${NEW})\n"
+            fi
+          done
+
+          # 5. Enviar a Discord si hay novedades
+          if [ -n "$MESSAGES" ]; then
+            echo "Enviando notificación a Discord..."
+            PAYLOAD=$(jq -n --arg content "$MESSAGES" '{content: $content}')
+            curl -s -X POST \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD" \
+              "$DISCORD_WEBHOOK"
+            echo "Notificado."
+          else
+            echo "Sin novedades."
+          fi
+
+          # 6. Actualizar el Gist con el conteo actual
+          echo "Actualizando Gist..."
+          GIST_BODY=$(jq -n --arg content "$CURRENT" '{
+            files: { "downloads.json": { content: $content } }
+          }')
+          curl -s -X PATCH \
+            -H "Authorization: Bearer $GIST_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$GIST_BODY" \
+            "https://api.github.com/gists/$GIST_ID" > /dev/null
+
+          echo "Gist actualizado."
