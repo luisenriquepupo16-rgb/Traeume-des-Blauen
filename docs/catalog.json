@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-10-11T05:21:12Z",
+  "generated_at": "2026-10-11T05:34:56Z",
   "site": {
     "title": "Traeume des Blauen",
     "author": "Dreamer",
@@ -167,8 +167,8 @@
     {
       "id": "traeume_des_blauen",
       "name": "Träume des Blauen",
-      "version": "1.0.5",
-      "version_code": 6,
+      "version": "1.1.0",
+      "version_code": 8,
       "package": "com.traeume.blauen",
       "category": "Catálogo",
       "technologies": [
@@ -177,7 +177,10 @@
         "Ktor",
         "Kotlinx Serialization",
         "DataStore",
-        "Coil"
+        "Coil",
+        "WorkManager",
+        "Foreground Service (dataSync)",
+        "Material 3"
       ],
       "input_formats": [],
       "output_formats": [],
@@ -186,16 +189,16 @@
       "target_sdk": 34,
       "restrictions": null,
       "dedication": "Para todos los que sueñan en azul.",
-      "description": "Aplicación oficial del catálogo Träume des Blauen. Permite explorar, buscar y descargar todas las aplicaciones publicadas, con soporte offline, caché inteligente y actualización automática del contenido.",
-      "usage": "1. Abre la app.\r\n2. Explora el catálogo de aplicaciones disponibles.\r\n3. Usa la búsqueda o los filtros por categoría para encontrar lo que necesitas.\r\n4. Toca una tarjeta para ver los detalles de la app.\r\n5. Pulsa \"Descargar\" para instalar la app que te interese.\r\n6. Desliza hacia abajo o pulsa el botón de recargar para actualizar el catálogo.",
-      "icon": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/traeume_des_blauen_v1.0.5/icon.png",
+      "description": "Aplicación oficial del catálogo Träume des Blauen. Permite explorar, buscar y descargar todas las aplicaciones publicadas, con soporte offline, caché inteligente y actualización automática del contenido. Incluye además una sección Forja donde los usuarios pueden encargar aplicaciones Android personalizadas a través de un cuestionario guiado que se envía por WhatsApp.",
+      "usage": "1. Abre la app.\r\n2. En la sección Mostrador, explora el catálogo de aplicaciones disponibles.\r\n3. Usa la búsqueda o los filtros por categoría para encontrar lo que necesitas.\r\n4. Toca una tarjeta para ver los detalles de la app.\r\n5. Pulsa \"Descargar\" para descargar la app. La descarga continúa en segundo plano aunque salgas de la aplicación.\r\n6. Cuando termine, pulsa \"Instalar\" para instalarla.\r\n7. En la sección Forja, consulta las condiciones y pulsa \"Crear petición\" para encargar tu propia aplicación.\r\n8. Rellena el cuestionario y envíalo por WhatsApp.",
+      "icon": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/traeume_des_blauen_v1.1.0/icon.png",
       "apk": {
-        "filename": "traeume_des_blauen_v1.0.5.apk",
-        "url": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/traeume_des_blauen_v1.0.5/traeume_des_blauen_v1.0.5.apk",
-        "size_bytes": 14042412,
-        "sha256": "3322aa8b5d5007b83e3954a0634fd50da4751fb8380473461d69ec7f9cddb1e1"
+        "filename": "traeume_des_blauen_v1.1.0.apk",
+        "url": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/traeume_des_blauen_v1.1.0/traeume_des_blauen_v1.1.0.apk",
+        "size_bytes": 14172588,
+        "sha256": "17899fa92d043e0af8ae6bf6097f71f3a657fa0ebc55e27a0fca61f76702071f"
       },
-      "tag": "traeume_des_blauen_v1.0.5",
+      "tag": "traeume_des_blauen_v1.1.0",
       "updated_at": "2026-10-11"
     }
   ]
