@@ -1,7 +1,7 @@
 ---
 name: Träume des Blauen
-version: 1.0.4
-version_code: 5
+version: 1.0.5
+version_code: 6
 package: com.traeume.blauen
 category: Catálogo
 min_android: 8.0
