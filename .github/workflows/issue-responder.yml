@@ -4,7 +4,7 @@ on:
   issues:
     types: [opened]
   schedule:
-    - cron: '30 1 * * *'   # Para el cierre de inactivos
+    - cron: '30 1 * * *'
   workflow_dispatch:
 
 jobs:
@@ -41,7 +41,6 @@ jobs:
               message = `¡Qué sucede! 👋 Gracias por escribir.\n\nHe recibido tu issue y lo revisaré en cuanto pueda. Si me das algún detalle más, mejor. 💙`;
             }
 
-            // Añadir etiqueta
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -49,7 +48,6 @@ jobs:
               labels: [label]
             });
 
-            // Publicar comentario
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -58,6 +56,35 @@ jobs:
             });
 
             console.log(`Issue #${issue.number} etiquetado como "${label}" y respondido.`);
+
+      - name: Notificar a Discord sobre issue nuevo
+        if: github.event_name == 'issues'
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          ISSUE_NUM="${{ github.event.issue.number }}"
+          ISSUE_TITLE="${{ github.event.issue.title }}"
+          ISSUE_AUTHOR="${{ github.event.issue.user.login }}"
+          ISSUE_URL="${{ github.event.issue.html_url }}"
+          ISSUE_BODY="${{ github.event.issue.body }}"
+
+          # Acortar el cuerpo si es muy largo
+          BODY_PREVIEW=$(echo "$ISSUE_BODY" | head -c 200)
+          if [ ${#ISSUE_BODY} -gt 200 ]; then
+            BODY_PREVIEW="${BODY_PREVIEW}..."
+          fi
+
+          MSG="🐛 **Nuevo issue #${ISSUE_NUM}**\n"
+          MSG="${MSG}• **Título:** ${ISSUE_TITLE}\n"
+          MSG="${MSG}• **Autor:** @${ISSUE_AUTHOR}\n"
+          if [ -n "$ISSUE_BODY" ]; then
+            MSG="${MSG}• **Descripción:** ${BODY_PREVIEW}\n"
+          fi
+          MSG="${MSG}\n[Ver issue](${ISSUE_URL})"
+
+          PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')
+          curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$DISCORD_WEBHOOK"
+          echo "Notificado a Discord."
 
       - name: Cerrar issues inactivos
         if: github.event_name == 'schedule'
