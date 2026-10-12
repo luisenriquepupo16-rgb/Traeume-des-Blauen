@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Cómo resolví el problema de las descargas en background en Android con un Foreground Service.">
+    <meta name="author" content="Dreamer (Luisi)">
+    <title>Cómo resolví el problema de las descargas en background — Dreamer</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="blog.css">
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span class="theme-icon">🌙</span>
+    <span class="theme-label">Modo oscuro</span>
+</button>
+
+<nav class="main-nav" aria-label="Navegación principal">
+    <a href="../index.html">← Volver al portafolio</a>
+    <a href="index.html">Blog</a>
+</nav>
+
+<article class="article">
+
+    <header class="article-header">
+        <p class="article-meta">Octubre 2026 · Desarrollo Android</p>
+        <h1>Cómo resolví el problema de las descargas en background en Android</h1>
+    </header>
+
+    <div class="article-content">
+
+        <p>Cuando empecé a desarrollar Träume des Blauen, la app que uso para publicar mis aplicaciones, no anticipé que las descargas serían uno de los problemas más complejos del proyecto. Este es el relato de cómo lo resolví, con contexto y sin edulcorar.</p>
+
+        <h2>El problema</h2>
+
+        <p>La app permite a los usuarios descargar APKs directamente. Al principio, la descarga se hacía en una corrutina lanzada desde el <code>ViewModel</code>. Funcionaba, pero tenía un fallo crítico: <strong>si el usuario salía de la app durante la descarga, la descarga se interrumpía</strong>.</p>
+
+        <p>En Android, cuando una app pasa a segundo plano, el sistema puede matar el proceso si necesita recursos. La corrutina vivía en el <code>ViewModel</code>, que está atado al ciclo de vida de la Activity. Si la Activity moría, el ViewModel moría, y la corrutina con él.</p>
+
+        <p>La consecuencia práctica: el usuario tenía que quedarse en la app durante toda la descarga. Si salía a hacer otra cosa, perdía el progreso. Aceptable para un APK pequeño, molesto para uno grande.</p>
+
+        <h2>La primera solución (fallida): DownloadManager</h2>
+
+        <p>Investigué y encontré el <code>DownloadManager</code> de Android. Es un servicio del sistema diseñado exactamente para esto: gestiona descargas en background, con notificación y todo. Parecía la solución perfecta.</p>
+
+        <p>El problema: <strong>el <code>DownloadManager</code> no puede escribir en la carpeta privada de la app</strong> (<code>filesDir</code>). Es una carpeta aislada por seguridad, y el <code>DownloadManager</code> corre en un proceso distinto. Solo puede escribir en la carpeta de descargas pública.</p>
+
+        <p>Probé varias alternativas, pero ninguna funcionaba limpiamente. Y necesitaba la carpeta privada porque la app instala los APKs con <code>FileProvider</code>, que requiere una ruta controlada.</p>
+
+        <h2>La solución real: Foreground Service</h2>
+
+        <p>La solución fue un <code>Foreground Service</code>. Es un servicio de Android que se ejecuta en primer plano, con una notificación persistente que informa al usuario de que algo está corriendo. El sistema garantiza que este servicio no se mata, incluso si la app pasa a background.</p>
+
+        <p>La arquitectura quedó así:</p>
+
+        <ul>
+            <li>Un servicio llamado <code>DownloadService</code> que gestiona la descarga.</li>
+            <li>Una corrutina dentro del servicio que descarga con Ktor.</li>
+            <li>El servicio actualiza una notificación persistente con el progreso.</li>
+            <li>La UI observa un <code>StateFlow</code> global (el <code>DownloadManagerSingleton</code>) para mostrar el progreso en pantalla.</li>
+            <li>Al terminar, el servicio se detiene a sí mismo.</li>
+        </ul>
+
+        <p>Con esto, la descarga sobrevive a que la app pase a background. Si el usuario sale de la app, la descarga continúa. Al volver, ve el progreso actualizado.</p>
+
+        <h2>Los detalles que aprendí por el camino</h2>
+
+        <p>Implementar esto bien tiene varias trampas:</p>
+
+        <h3>El tipo de Foreground Service</h3>
+
+        <p>Desde Android 14, todos los <code>Foreground Service</code> deben declarar su tipo. Para descargas, el tipo es <code>dataSync</code>. Sin eso, el servicio no arranca.</p>
+
+        <h3>El permiso de notificaciones</h3>
+
+        <p>En Android 13+, hay que pedir el permiso <code>POST_NOTIFICATIONS</code> explícitamente. Si el usuario lo deniega, el servicio sigue funcionando, pero la notificación no se ve.</p>
+
+        <h3>La cancelación real</h3>
+
+        <p>Un bug que descubrí tarde: el botón "Cancelar" del diálogo cerraba el diálogo, pero no cancelaba la descarga. La descarga seguía en background y terminaba de todos modos.</p>
+
+        <p>La solución fue que el botón "Cancelar" envíe una señal al servicio (<code>ACTION_CANCEL</code>) mediante un <code>Intent</code>. El servicio cancela el <code>Job</code> de la corrutina, borra el archivo parcial y se detiene.</p>
+
+        <h3>El estado en el ViewModel</h3>
+
+        <p>Antes de rediseñar, el estado del botón (<em>Descargar</em>, <em>Instalar</em>, <em>Actualizar</em>, <em>Abrir</em>) se recalculaba en cada recomposición con <code>remember</code>. Eso causaba bugs de timing: el botón no se actualizaba al instante.</p>
+
+        <p>La solución fue centralizar el estado en un <code>Map&lt;String, AppStatus&gt;</code> en el ViewModel. La UI lee directamente de ahí. Cuando un paquete cambia (instalación, actualización, desinstalación), un <code>PackageChangeReceiver</code> dispara un recálculo.</p>
+
+        <h2>Lo que aprendí</h2>
+
+        <p>Tres lecciones que me llevo:</p>
+
+        <ol>
+            <li><strong>Las tareas largas no deben depender del ciclo de vida de la UI.</strong> Deben vivir en un servicio independiente. La UI es solo una vista del estado, no el estado mismo.</li>
+            <li><strong>No todas las herramientas del sistema son universales.</strong> El <code>DownloadManager</code> es útil, pero no para este caso. A veces hay que bajar un nivel y hacer las cosas uno mismo.</li>
+            <li><strong>Cuando algo falla por timing, la solución no es añadir más <code>delay()</code>.</strong> Es rediseñar la arquitectura para que no dependa del timing.</li>
+        </ol>
+
+        <h2>Conclusión</h2>
+
+        <p>Este problema me llevó varios intentos y varias versiones. La solución final no es la más elegante del mundo, pero funciona, y sobrevive a los casos raros. Para una app personal como la mía, es suficiente.</p>
+
+        <p>Si estás lidiando con algo similar, mi recomendación es: empieza con la solución simple (corrutina en el ViewModel), mide los problemas reales, y solo migra a <code>Foreground Service</code> si de verdad lo necesitas. La migración no es trivial.</p>
+
+    </div>
+
+</article>
+
+<nav class="article-nav">
+    <a href="index.html">← Todas las entradas</a>
+    <a href="catalogo-json.html">Siguiente entrada →</a>
+</nav>
+
+<footer class="main-footer">
+    <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
+</footer>
+
+<script>
+    (function() {
+        const toggle = document.getElementById("themeToggle");
+        const icon = toggle.querySelector(".theme-icon");
+        const label = toggle.querySelector(".theme-label");
+        const saved = localStorage.getItem("theme") || "light";
+
+        function applyTheme(theme) {
+            if (theme === "dark") {
+                document.documentElement.setAttribute("data-theme", "dark");
+                icon.textContent = "☀️";
+                label.textContent = "Modo claro";
+            } else {
+                document.documentElement.removeAttribute("data-theme");
+                icon.textContent = "🌙";
+                label.textContent = "Modo oscuro";
+            }
+        }
+
+        applyTheme(saved);
+
+        toggle.addEventListener("click", function() {
+            const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+            const newTheme = isDark ? "light" : "dark";
+            localStorage.setItem("theme", newTheme);
+            applyTheme(newTheme);
+        });
+
+        document.getElementById("year").textContent = new Date().getFullYear();
+    })();
+</script>
+
+</body>
+</html>

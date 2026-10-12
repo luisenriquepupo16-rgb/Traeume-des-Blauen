@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Cómo estructuré el catálogo de apps con un JSON generado automáticamente.">
+    <meta name="author" content="Dreamer (Luisi)">
+    <title>Cómo estructuré el catálogo de apps con un JSON generado automáticamente — Dreamer</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="blog.css">
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span class="theme-icon">🌙</span>
+    <span class="theme-label">Modo oscuro</span>
+</button>
+
+<nav class="main-nav" aria-label="Navegación principal">
+    <a href="../index.html">← Volver al portafolio</a>
+    <a href="index.html">Blog</a>
+</nav>
+
+<article class="article">
+
+    <header class="article-header">
+        <p class="article-meta">Octubre 2026 · Automatización</p>
+        <h1>Cómo estructuré el catálogo de apps con un JSON generado automáticamente</h1>
+    </header>
+
+    <div class="article-content">
+
+        <p>Una de las decisiones que más tiempo me ahorró en Träume des Blauen fue automatizar la generación del catálogo. En vez de mantener a mano una lista de aplicaciones, el catálogo se genera solo a partir de la estructura de carpetas. Este es el proceso.</p>
+
+        <h2>El problema</h2>
+
+        <p>Cuando empecé, tenía varias apps publicadas. Cada vez que añadía una nueva, tenía que:</p>
+
+        <ul>
+            <li>Actualizar la web con los datos de la app.</li>
+            <li>Actualizar la app Android con los mismos datos.</li>
+            <li>Mantener todo sincronizado.</li>
+        </ul>
+
+        <p>Era tedioso y propenso a errores. Se me olvidaba actualizar un lado u otro, y los datos quedaban inconsistentes.</p>
+
+        <h2>La idea</h2>
+
+        <p>La solución fue simple: <strong>separar los datos de la presentación</strong>. Los datos viven en un archivo JSON generado automáticamente. La presentación (web, app Android) solo lee ese JSON. Así, solo hay que mantener los datos en un sitio, y todo lo demás se actualiza solo.</p>
+
+        <h2>La estructura de carpetas</h2>
+
+        <p>Cada app vive en su propia carpeta dentro de <code>apps/</code>:</p>
+
+        <pre><code>apps/
+├── converty/
+│   ├── converty_v1.2.0.apk
+│   ├── icon.png
+│   └── info.md
+├── magic_world/
+│   ├── magic_world_v2.1.10.apk
+│   ├── icon.png
+│   └── info.md
+└── ...</code></pre>
+
+        <p>El archivo <code>info.md</code> contiene los metadatos de la app en formato YAML (frontmatter) + cuerpo markdown. Por ejemplo:</p>
+
+        <pre><code>---
+name: Converty
+version: 1.2.0
+version_code: 5
+package: com.converty.neki
+category: Utilidades
+technologies:
+  - Kotlin
+  - Apache POI
+---
+
+## Description
+
+Aplicación Android que convierte documentos...</code></pre>
+
+        <h2>El workflow</h2>
+
+        <p>En GitHub, un workflow detecta cambios en la carpeta <code>apps/</code> y hace dos cosas:</p>
+
+        <ol>
+            <li>Crea un release de GitHub con el APK y el icono.</li>
+            <li>Ejecuta un script que recorre todas las apps, lee su <code>info.md</code>, y genera el <code>catalog.json</code>.</li>
+        </ol>
+
+        <p>El script está escrito en PowerShell. Por cada app:</p>
+
+        <ul>
+            <li>Lee el frontmatter YAML.</li>
+            <li>Busca el APK y el icono.</li>
+            <li>Calcula el hash SHA-256 del APK.</li>
+            <li>Construye una entrada del JSON con URLs apuntando al release.</li>
+        </ul>
+
+        <h2>El JSON resultante</h2>
+
+        <p>El <code>catalog.json</code> tiene esta estructura:</p>
+
+        <pre><code>{
+  "version": 1,
+  "generated_at": "2026-10-11T...",
+  "site": {
+    "title": "Traeume des Blauen",
+    "author": "Dreamer"
+  },
+  "apps": [
+    {
+      "id": "converty",
+      "name": "Converty",
+      "version": "1.2.0",
+      "category": "Utilidades",
+      "icon": "https://...",
+      "apk": {
+        "url": "https://...",
+        "size_bytes": 19626720,
+        "sha256": "..."
+      }
+    }
+  ]
+}</code></pre>
+
+        <p>Cada app tiene toda la información necesaria para ser mostrada y descargada.</p>
+
+        <h2>Los consumidores</h2>
+
+        <p>Dos cosas leen ese JSON:</p>
+
+        <ul>
+            <li><strong>La web del portafolio</strong>, que lo lee desde JavaScript y renderiza las tarjetas.</li>
+            <li><strong>La app Android</strong>, que lo descarga con Ktor y lo cachea con DataStore.</li>
+        </ul>
+
+        <p>Ambos leen la misma URL: <code>https://luisenriquepupo16-rgb.github.io/Traeume-des-Blauen/catalog.json</code>. Cuando el catálogo cambia, ambos se actualizan solos.</p>
+
+        <h2>Los detalles importantes</h2>
+
+        <h3>Encabezados sin tildes</h3>
+
+        <p>Un detalle que me costó descubrir: los encabezados del cuerpo del <code>info.md</code> (<code>## Description</code>, <code>## Uso</code>) tienen que estar en inglés y sin tildes. La razón es que PowerShell 5.1 puede corromper las tildes al leer el archivo, y el parser deja de encontrar los encabezados. El contenido sí puede estar en español.</p>
+
+        <h3>Nombres de archivos sin caracteres especiales</h3>
+
+        <p>Los APKs deben nombrarse como <code>&lt;app-id&gt;_v&lt;version&gt;.apk</code>, sin diéresis, sin mayúsculas. Los iconos siempre <code>icon.png</code>. Esto evita problemas de encoding en distintos sistemas.</p>
+
+        <h3>El workflow hace commit del JSON</h3>
+
+        <p>Después de generar el <code>catalog.json</code>, el workflow hace commit automático con un mensaje que incluye <code>[skip ci]</code>. Así no se dispara a sí mismo en bucle.</p>
+
+        <h2>Lo que aprendí</h2>
+
+        <p>Tres lecciones:</p>
+
+        <ol>
+            <li><strong>Separar datos de presentación es clave.</strong> Cuando los datos viven en un sitio y la presentación en otro, todo se actualiza solo. No hay que sincronizar nada a mano.</li>
+            <li><strong>La automatización paga a largo plazo.</strong> Invertir 2 horas en configurar un workflow ahorra decenas de horas de mantenimiento manual.</li>
+            <li><strong>Los detalles técnicos importan.</strong> El encoding, los nombres de archivos, los encabezados sin tildes... Son detalles pequeños que, si se ignoran, rompen todo el sistema.</li>
+        </ol>
+
+        <h2>Conclusión</h2>
+
+        <p>Automatizar el catálogo fue una de las mejores decisiones del proyecto. Ahora añadir una app nueva es tan simple como crear una carpeta con tres archivos y hacer push. El resto se hace solo.</p>
+
+        <p>Si estás manteniendo un catálogo a mano, mi recomendación es: automatízalo. No tiene que ser perfecto, solo tiene que quitar el trabajo manual del medio.</p>
+
+    </div>
+
+</article>
+
+<nav class="article-nav">
+    <a href="descargas-background.html">← Entrada anterior</a>
+    <a href="portafolio-sin-romper-app.html">Siguiente entrada →</a>
+</nav>
+
+<footer class="main-footer">
+    <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
+</footer>
+
+<script>
+    (function() {
+        const toggle = document.getElementById("themeToggle");
+        const icon = toggle.querySelector(".theme-icon");
+        const label = toggle.querySelector(".theme-label");
+        const saved = localStorage.getItem("theme") || "light";
+
+        function applyTheme(theme) {
+            if (theme === "dark") {
+                document.documentElement.setAttribute("data-theme", "dark");
+                icon.textContent = "☀️";
+                label.textContent = "Modo claro";
+            } else {
+                document.documentElement.removeAttribute("data-theme");
+                icon.textContent = "🌙";
+                label.textContent = "Modo oscuro";
+            }
+        }
+
+        applyTheme(saved);
+
+        toggle.addEventListener("click", function() {
+            const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+            const newTheme = isDark ? "light" : "dark";
+            localStorage.setItem("theme", newTheme);
+            applyTheme(newTheme);
+        });
+
+        document.getElementById("year").textContent = new Date().getFullYear();
+    })();
+</script>
+
+</body>
+</html>

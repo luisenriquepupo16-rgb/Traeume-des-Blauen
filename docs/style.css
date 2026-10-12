@@ -34,7 +34,7 @@
 
     /* Tipografía */
     --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --font-mono: "Cascadia Code", "Consolas", monospace;
+    --font-mono: "Cascadia Code", "Consolas", "Courier New", monospace;
 
     /* Transiciones */
     --transition: 0.2s ease;
@@ -83,6 +83,19 @@ body {
     transition: background var(--transition), color var(--transition);
     min-height: 100vh;
     padding: 0 20px 40px;
+}
+
+code {
+    font-family: var(--font-mono);
+    background: var(--bg-secondary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--blue-dark);
+}
+
+[data-theme="dark"] code {
+    color: var(--blue-light);
 }
 
 /* ===== Botón de tema ===== */
@@ -227,6 +240,10 @@ body {
     margin: 32px 0 16px;
 }
 
+[data-theme="dark"] .about-content h3 {
+    color: var(--wood);
+}
+
 .experience-list {
     list-style: none;
     padding: 0;
@@ -339,6 +356,192 @@ body {
     grid-column: 1 / -1;
 }
 
+/* ===== Retos técnicos ===== */
+.challenges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+}
+
+.challenge-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-left: 5px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    transition: all var(--transition);
+}
+
+.challenge-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+    border-left-color: var(--blue);
+}
+
+.challenge-card h3 {
+    font-size: 1.15rem;
+    color: var(--blue);
+    margin-bottom: 16px;
+    font-weight: 700;
+}
+
+.challenge-card p {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.challenge-card p:last-child {
+    margin-bottom: 0;
+}
+
+.challenge-context {
+    font-style: italic;
+    border-left: 3px solid var(--border);
+    padding-left: 12px;
+}
+
+.challenge-solution,
+.challenge-lesson {
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-small);
+}
+
+.challenge-lesson {
+    border-left: 3px solid var(--gold);
+}
+
+/* ===== Open source ===== */
+.opensource-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.opensource-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    transition: all var(--transition);
+}
+
+.opensource-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--gold);
+}
+
+.opensource-card h3 {
+    font-size: 1.3rem;
+    color: var(--blue);
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+
+.opensource-detail {
+    display: inline-block;
+    background: var(--gold);
+    color: var(--wood-dark);
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.opensource-description {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.opensource-note {
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 16px;
+    border-top: 1px dashed var(--border);
+}
+
+/* ===== Blog ===== */
+.blog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.blog-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    transition: all var(--transition);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.blog-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--gold);
+}
+
+.blog-card h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.blog-card h3 a {
+    color: var(--blue);
+    text-decoration: none;
+    transition: color var(--transition);
+}
+
+.blog-card h3 a:hover {
+    color: var(--gold);
+    text-decoration: underline;
+}
+
+.blog-date {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.blog-excerpt {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    flex-grow: 1;
+}
+
+.blog-cta {
+    text-align: center;
+    margin-top: 32px;
+}
+
+/* ===== Placeholder ===== */
+.placeholder-box {
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 40px 24px;
+    text-align: center;
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 1rem;
+}
+
 /* ===== Servicios ===== */
 .services-grid {
     display: grid;
@@ -403,10 +606,9 @@ body {
     margin-top: 32px;
 }
 
-.btn-primary {
+.btn-primary,
+.btn-secondary {
     display: inline-block;
-    background: var(--blue);
-    color: var(--surface);
     padding: 14px 36px;
     border-radius: 40px;
     text-decoration: none;
@@ -417,9 +619,29 @@ body {
     border: 2px solid transparent;
 }
 
+.btn-primary {
+    background: var(--blue);
+    color: var(--surface);
+}
+
 .btn-primary:hover,
 .btn-primary:focus {
     background: var(--blue-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--gold);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--blue);
+    border-color: var(--blue);
+}
+
+.btn-secondary:hover,
+.btn-secondary:focus {
+    background: var(--blue);
+    color: var(--surface);
     transform: translateY(-2px);
     box-shadow: var(--shadow-hover);
     border-color: var(--gold);
@@ -493,6 +715,10 @@ body {
     text-align: center;
 }
 
+[data-theme="dark"] .coming-soon-title {
+    color: var(--wood);
+}
+
 .contact-grid.coming-soon {
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     margin-bottom: 0;
@@ -556,6 +782,12 @@ body {
 
     .theme-toggle {
         padding: 8px 12px;
+    }
+
+    .challenges-grid,
+    .opensource-grid,
+    .blog-grid {
+        grid-template-columns: 1fr;
     }
 }
 

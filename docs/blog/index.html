@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Blog técnico de Dreamer. Notas sobre el desarrollo de aplicaciones Android.">
+    <meta name="author" content="Dreamer (Luisi)">
+    <title>Blog — Dreamer · Träume des Blauen</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="blog.css">
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span class="theme-icon">🌙</span>
+    <span class="theme-label">Modo oscuro</span>
+</button>
+
+<header class="main-header">
+    <div class="header-content">
+        <img src="../assets/logo_grande.png" alt="Logo de Dreamer" class="header-logo">
+        <div class="header-text">
+            <h1>Blog</h1>
+            <p class="subtitle">Notas técnicas</p>
+            <p class="tagline">Documentación honesta de lo que he construido y aprendido</p>
+        </div>
+    </div>
+</header>
+
+<nav class="main-nav" aria-label="Navegación principal">
+    <a href="../index.html">← Volver al portafolio</a>
+    <a href="index.html">Blog</a>
+</nav>
+
+<main>
+
+    <section class="section">
+        <h2>Todas las entradas</h2>
+        <p class="section-intro">Notas sobre desarrollo Android, decisiones técnicas, y aprendizajes. Sin pretensiones de tutorial, solo documentación honesta.</p>
+
+        <div class="blog-list">
+
+            <article class="blog-list-item">
+                <p class="blog-date">Octubre 2026</p>
+                <h3><a href="descargas-background.html">Cómo resolví el problema de las descargas en background en Android</a></h3>
+                <p class="blog-excerpt">El problema: cuando el usuario salía de la app, la descarga se interrumpía. La solución: Foreground Service con notificación persistente. El aprendizaje: las tareas largas no deben depender del ciclo de vida de la UI.</p>
+                <a href="descargas-background.html" class="read-more">Leer entrada →</a>
+            </article>
+
+            <article class="blog-list-item">
+                <p class="blog-date">Octubre 2026</p>
+                <h3><a href="catalogo-json.html">Cómo estructuré el catálogo de apps con un JSON generado automáticamente</a></h3>
+                <p class="blog-excerpt">El problema: mantener un catálogo actualizado a mano era tedioso. La solución: un workflow de GitHub Actions que genera un <code>catalog.json</code> desde la estructura de carpetas. El aprendizaje: separar contenido de presentación.</p>
+                <a href="catalogo-json.html" class="read-more">Leer entrada →</a>
+            </article>
+
+            <article class="blog-list-item">
+                <p class="blog-date">Octubre 2026</p>
+                <h3><a href="portafolio-sin-romper-app.html">Cómo convertí la web del catálogo en un portafolio sin romper la app</a></h3>
+                <p class="blog-excerpt">El problema: la web ya no se usaba, pero la app dependía de <code>catalog.json</code>. La solución: mantener el JSON intacto y reescribir solo la presentación. El aprendizaje: separar datos de interfaz es clave para escalar.</p>
+                <a href="portafolio-sin-romper-app.html" class="read-more">Leer entrada →</a>
+            </article>
+
+        </div>
+    </section>
+
+</main>
+
+<footer class="main-footer">
+    <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
+    <p class="footer-tagline">Aplicaciones sencillas, útiles y hechas con claridad.</p>
+</footer>
+
+<script>
+    // Tema claro/oscuro
+    (function() {
+        const toggle = document.getElementById("themeToggle");
+        const icon = toggle.querySelector(".theme-icon");
+        const label = toggle.querySelector(".theme-label");
+        const saved = localStorage.getItem("theme") || "light";
+
+        function applyTheme(theme) {
+            if (theme === "dark") {
+                document.documentElement.setAttribute("data-theme", "dark");
+                icon.textContent = "☀️";
+                label.textContent = "Modo claro";
+            } else {
+                document.documentElement.removeAttribute("data-theme");
+                icon.textContent = "🌙";
+                label.textContent = "Modo oscuro";
+            }
+        }
+
+        applyTheme(saved);
+
+        toggle.addEventListener("click", function() {
+            const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+            const newTheme = isDark ? "light" : "dark";
+            localStorage.setItem("theme", newTheme);
+            applyTheme(newTheme);
+        });
+
+        document.getElementById("year").textContent = new Date().getFullYear();
+    })();
+</script>
+
+</body>
+</html>
