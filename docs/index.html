@@ -1,105 +1,179 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Träume des Blauen</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Portafolio de Dreamer (Luisi), desarrollador Android autodidacta desde Cuba. Aplicaciones móviles con Kotlin y Jetpack Compose.">
+    <meta name="author" content="Dreamer (Luisi)">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Dreamer · Träume des Blauen">
+    <meta property="og:description" content="Portafolio de Dreamer, desarrollador Android desde Cuba.">
+    <meta property="og:image" content="assets/og_image.png">
+    <meta property="og:type" content="website">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+    <link rel="apple-touch-icon" href="assets/logo_header.png">
+    
+    <title>Dreamer · Träume des Blauen</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- OVERLAY DE DESCARGA -->
-<div class="download-overlay" id="downloadOverlay">
-    <div class="spinner"></div>
-    <p>⬇️ Descargando…</p>
-</div>
+<!-- Botón de tema -->
+<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span class="theme-icon">🌙</span>
+    <span class="theme-label">Modo oscuro</span>
+</button>
 
-<div class="container">
-    <header class="main-header">
-        <div>
-            <h1 id="siteTitle">💙 Träume des Blauen</h1>
-            <p id="siteSubtitle">Sueños de lo Azul — aplicaciones hechas con claridad.</p>
+<!-- Header -->
+<header class="main-header">
+    <div class="header-content">
+        <img src="assets/logo_grande.png" alt="Logo de Dreamer" class="header-logo">
+        <div class="header-text">
+            <h1>Dreamer</h1>
+            <p class="subtitle">Träume des Blauen</p>
+            <p class="tagline">Desarrollador Android autodidacta desde Cuba</p>
         </div>
-        <div class="header-actions">
-            <button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
-                🌙 Modo oscuro
-            </button>
-        </div>
-    </header>
-
-    <div class="content">
-        <!-- CATÁLOGO -->
-        <section>
-            <h2>Catálogo de aplicaciones</h2>
-
-            <div class="tabs" role="tablist" aria-label="Filtros de catálogo">
-                <button class="tab-btn active" role="tab" aria-selected="true" data-tab="todas" id="tab-todas">Todas</button>
-                <button class="tab-btn" role="tab" aria-selected="false" data-tab="nuevas" id="tab-nuevas">Nuevas</button>
-            </div>
-
-            <div class="search-filter-bar">
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="🔍 Buscar aplicación..." aria-label="Buscar aplicaciones">
-                </div>
-                <div class="filter-tags" role="group" aria-label="Filtros por categoría">
-                    <span class="label">Categorías:</span>
-                    <div id="categoryFilters"></div>
-                </div>
-            </div>
-
-            <div id="cardsGrid" class="cards-grid" role="list"></div>
-        </section>
-
-        <!-- CONTACTO Y MÁS -->
-        <section>
-            <h2>Encarga tu propia aplicación</h2>
-            <p>Si quieres obtener una aplicación para tu propio uso o negocio, puedes encargarla haciendo contacto con el desarrollador.</p>
-            <div class="contact-links">
-                <a id="whatsappLink" href="#" class="btn-wa" target="_blank">📲 Contactar por WhatsApp</a>
-            </div>
-
-            <h3>¿Qué puedes personalizar?</h3>
-            <ul style="margin-left: 24px; color: var(--muted);">
-                <li><strong>Apariencia:</strong> colores, tipografía, organización.</li>
-                <li><strong>Funcionalidad:</strong> catálogo, carrito, pedidos por WhatsApp, búsquedas, filtros.</li>
-                <li><strong>Objetivo:</strong> negocio, emprendimiento, uso personal, educativo.</li>
-                <li><strong>Características detalladas:</strong> modo offline, lista de deseos, historial, panel admin.</li>
-            </ul>
-            <p style="margin-top: 16px;"><strong>⚠️</strong> No se garantiza poder crear la aplicación con todas las características si estas superan un cierto nivel de complejidad. Cada proyecto se evalúa caso por caso.</p>
-        </section>
-
-        <section>
-            <h2>¿Eres desarrollador?</h2>
-            <p>Contacta mediante un issue de GitHub. Se acepta feedback y sugerencias.</p>
-            <div class="contact-links">
-                <a id="githubLink" href="#" class="btn-gh" target="_blank">🐙 GitHub</a>
-            </div>
-        </section>
-
-        <section>
-            <h2>Para Cuba</h2>
-            <p>Esta es una página creada en Cuba, para usuarios cubanos. Se busca mejorar siempre un poco, en cualquier ámbito de la vida, y la tecnología no es la excepción.</p>
-        </section>
-
-        <section>
-            <h2>Condiciones de uso</h2>
-            <ol style="margin-left: 24px; color: var(--muted);">
-                <li>Todas las aplicaciones aquí expuestas son de libre descarga y distribución. No se alienta ninguna forma de monetización o mal uso.</li>
-                <li>Las aplicaciones encargadas serán expuestas aquí salvo excepciones (caso por caso).</li>
-                <li>El código fuente no se comparte a menos que se acuerde explícitamente.</li>
-                <li>Los tiempos de desarrollo se acuerdan antes de empezar, sin presiones innecesarias.</li>
-            </ol>
-        </section>
-
-        <footer>
-            <p>💙 Träume des Blauen — Aplicaciones sencillas, útiles y hechas con claridad.<br>
-            Por Luisi · Cuba · <span id="year"></span></p>
-        </footer>
     </div>
-</div>
+</header>
+
+<!-- Navegación -->
+<nav class="main-nav" aria-label="Navegación principal">
+    <a href="#sobre-mi">Sobre mí</a>
+    <a href="#proyectos">Proyectos</a>
+    <a href="#servicios">Servicios</a>
+    <a href="#contacto">Contacto</a>
+</nav>
+
+<main>
+
+    <!-- ===== Sección: Sobre mí ===== -->
+    <section id="sobre-mi" class="section">
+        <h2>Sobre mí</h2>
+        <div class="about-content">
+            <p>Soy <strong>Dreamer</strong> (Luisi), desarrollador Android autodidacta desde Cuba. Creo aplicaciones móviles con Kotlin y Jetpack Compose, con un enfoque en apps funcionales, offline y útiles para el día a día.</p>
+
+            <p>Mi trabajo se centra en resolver problemas concretos con herramientas sencillas: catálogos, gestores, calculadoras, apps educativas. Prefiero que una app haga una cosa bien, a que haga muchas mal.</p>
+
+            <p>Cuando no estoy programando, estudio y aprendo sobre nuevas tecnologías y frameworks. <em>Träume des Blauen</em> es el nombre de mi proyecto personal, donde publico todas las aplicaciones que desarrollo.</p>
+
+            <h3>Formación y experiencia</h3>
+            <ul class="experience-list">
+                <li>Programación competitiva desde los 14 años, principalmente en C++.</li>
+                <li>Participación en eventos nacionales de programación.</li>
+                <li>Participación en el ICPC (International Collegiate Programming Contest).</li>
+                <li>Conocimientos básicos de Java, Python, Django y Go.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ===== Sección: Proyectos ===== -->
+    <section id="proyectos" class="section">
+        <h2>Proyectos publicados</h2>
+        <p class="section-intro">Todas las aplicaciones que he desarrollado y publicado. Cada una está disponible para descargar libremente.</p>
+        
+        <div id="projectsGrid" class="projects-grid" role="list">
+            <p class="loading-message">Cargando proyectos…</p>
+        </div>
+    </section>
+
+    <!-- ===== Sección: Servicios (Forja) ===== -->
+    <section id="servicios" class="section">
+        <h2>Servicios — La Forja</h2>
+        <p class="section-intro">Además de mis aplicaciones publicadas, ofrezco servicios de desarrollo de aplicaciones Android personalizadas. Cada proyecto se evalúa caso por caso.</p>
+
+        <div class="services-grid">
+            <div class="service-card">
+                <h3>¿Qué se puede forjar?</h3>
+                <p>Aplicaciones Android a medida: catálogos, gestores, calculadoras, apps educativas, de negocios, o cualquier idea que tengas en mente.</p>
+            </div>
+
+            <div class="service-card">
+                <h3>Cómo funciona</h3>
+                <ol class="process-list">
+                    <li>Rellenas el cuestionario con tu idea.</li>
+                    <li>Recibes respuesta en 24-48 horas.</li>
+                    <li>Acordamos detalles, precio y plazo.</li>
+                    <li>50% por adelantado.</li>
+                    <li>Recibes una demo funcional de 10 días.</li>
+                    <li>Si te convence, abonas el resto.</li>
+                    <li>30 días de garantía de soporte.</li>
+                </ol>
+            </div>
+
+            <div class="service-card">
+                <h3>Plataforma</h3>
+                <p>Solo se aceptan peticiones para <strong>aplicaciones Android</strong>. No desarrollo para iOS.</p>
+            </div>
+        </div>
+
+        <div class="services-cta">
+            <a href="#contacto" class="btn-primary">Encargar aplicación</a>
+        </div>
+    </section>
+
+    <!-- ===== Sección: Contacto ===== -->
+    <section id="contacto" class="section">
+        <h2>Contacto</h2>
+        <p class="section-intro">¿Tienes una idea? ¿Quieres encargar una aplicación? ¿O simplemente saludar? Aquí me encuentras.</p>
+
+        <div class="contact-grid">
+            <a href="https://wa.me/5354935996" target="_blank" rel="noopener" class="contact-card">
+                <span class="contact-icon">💬</span>
+                <span class="contact-label">WhatsApp</span>
+                <span class="contact-value">+53 54935996</span>
+            </a>
+
+            <a href="mailto:luisenriquepupo16@gmail.com" class="contact-card">
+                <span class="contact-icon">✉️</span>
+                <span class="contact-label">Email</span>
+                <span class="contact-value">luisenriquepupo16@gmail.com</span>
+            </a>
+
+            <a href="https://github.com/luisenriquepupo16-rgb" target="_blank" rel="noopener" class="contact-card">
+                <span class="contact-icon">🐙</span>
+                <span class="contact-label">GitHub</span>
+                <span class="contact-value">@luisenriquepupo16-rgb</span>
+            </a>
+        </div>
+
+        <h3 class="coming-soon-title">Próximamente</h3>
+        <div class="contact-grid coming-soon">
+            <div class="contact-card disabled">
+                <span class="contact-icon">🎮</span>
+                <span class="contact-label">Discord</span>
+                <span class="contact-value">Próximamente</span>
+            </div>
+
+            <div class="contact-card disabled">
+                <span class="contact-icon">📘</span>
+                <span class="contact-label">Facebook</span>
+                <span class="contact-value">Próximamente</span>
+            </div>
+
+            <div class="contact-card disabled">
+                <span class="contact-icon">📷</span>
+                <span class="contact-label">Instagram</span>
+                <span class="contact-value">Próximamente</span>
+            </div>
+
+            <div class="contact-card disabled">
+                <span class="contact-icon">📨</span>
+                <span class="contact-label">Telegram</span>
+                <span class="contact-value">Próximamente</span>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- Footer -->
+<footer class="main-footer">
+    <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
+    <p class="footer-tagline">Aplicaciones sencillas, útiles y hechas con claridad.</p>
+</footer>
 
 <script src="app.js"></script>
 </body>
