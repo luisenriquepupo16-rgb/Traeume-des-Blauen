@@ -1,0 +1,73 @@
+name: Issue Responder
+
+on:
+  issues:
+    types: [opened]
+  schedule:
+    - cron: '30 1 * * *'   # Para el cierre de inactivos
+  workflow_dispatch:
+
+jobs:
+  responder:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Etiquetar y responder issue nuevo
+        if: github.event_name == 'issues'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const title = issue.title.toLowerCase();
+            const body = (issue.body || '').toLowerCase();
+            const text = title + ' ' + body;
+
+            let label = '';
+            let message = '';
+
+            if (text.match(/\b(bug|error|falla|fallo|no funciona|crash|se cierra)\b/)) {
+              label = 'bug';
+              message = `¡Qué sucede! 👋 Gracias por reportar.\n\nPara poder ayudarte bien, necesito algunos datos:\n• Modelo de teléfono\n• Versión de Android\n• Versión de la app\n• Qué pasos seguiste hasta que falló\n\nEn cuanto me lo digas, le echo un ojo. 💙`;
+            } else if (text.match(/\b(sugerencia|idea|me gustaría|podría|sería bueno|feature|añadir)\b/)) {
+              label = 'sugerencia';
+              message = `¡Qué sucede! 👋 Gracias por la idea.\n\nCuéntame un poco más: ¿qué te gustaría ver y para qué lo usarías? Así puedo valorarlo mejor. 💙`;
+            } else if (text.match(/\b(encargo|forja|presupuesto|contratar|personalizada|a medida)\b/)) {
+              label = 'encargo';
+              message = `¡Qué sucede! 👋 Gracias por el interés.\n\nPara encargar una app personalizada, necesito:\n• Descripción de lo que quieres\n• Presupuesto aproximado\n• Plazo que manejas\n\nLo mejor es que me escribas por WhatsApp y lo hablamos con calma. 💙`;
+            } else {
+              label = 'triage';
+              message = `¡Qué sucede! 👋 Gracias por escribir.\n\nHe recibido tu issue y lo revisaré en cuanto pueda. Si me das algún detalle más, mejor. 💙`;
+            }
+
+            // Añadir etiqueta
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              labels: [label]
+            });
+
+            // Publicar comentario
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: message
+            });
+
+            console.log(`Issue #${issue.number} etiquetado como "${label}" y respondido.`);
+
+      - name: Cerrar issues inactivos
+        if: github.event_name == 'schedule'
+        uses: actions/stale@v9
+        with:
+          days-before-issue-stale: 30
+          days-before-issue-close: 14
+          stale-issue-label: 'stale'
+          stale-issue-message: 'Oye, este issue lleva mucho sin moverse. Si ya no es relevante, lo cierro en 14 días. Si sigue vivo, avísame. 💙'
+          close-issue-message: 'Lo cierro por inactividad. Si vuelve a ser relevante, reábrelo o crea uno nuevo. 💙'
+          days-before-pr-stale: -1
+          days-before-pr-close: -1
+          repo-token: ${{ secrets.GITHUB_TOKEN }}

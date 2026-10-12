@@ -1,0 +1,75 @@
+name: Version Checker
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * *'   # Una vez al día a las 6 AM UTC
+  workflow_dispatch:
+
+jobs:
+  check-versions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Comparar versiones con releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -e
+
+          MESSAGES=""
+
+          for APP_DIR in apps/*/; do
+            APP_ID=$(basename "$APP_DIR")
+            INFO_PATH="${APP_DIR}info.md"
+
+            if [ ! -f "$INFO_PATH" ]; then
+              continue
+            fi
+
+            # Extraer versión del frontmatter
+            VERSION=$(grep -m1 '^version:' "$INFO_PATH" | sed 's/version:\s*//' | tr -d '"' | tr -d "'" | xargs)
+
+            if [ -z "$VERSION" ]; then
+              MESSAGES="${MESSAGES}⚠️ **${APP_ID}**: no se pudo leer la versión del info.md\n"
+              continue
+            fi
+
+            # Buscar último release de esta app
+            TAG="${APP_ID}_v${VERSION}"
+            RELEASE_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$REPO/releases/tags/$TAG")
+
+            if [ "$RELEASE_EXISTS" != "200" ]; then
+              # Buscar si hay algún release de esta app (cualquier versión)
+              ANY_RELEASE=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+                "https://api.github.com/repos/$REPO/releases?per_page=100" \
+                | jq -r --arg app "$APP_ID" '.[] | select(.tag_name | startswith($app + "_v")) | .tag_name' | head -1)
+
+              if [ -z "$ANY_RELEASE" ]; then
+                MESSAGES="${MESSAGES}⚠️ **${APP_ID}**: el info.md dice v${VERSION} pero **no tiene ningún release**\n"
+                MESSAGES="${MESSAGES}   [Ver info.md](https://github.com/$REPO/blob/main/apps/${APP_ID}/info.md)\n"
+              else
+                MESSAGES="${MESSAGES}⚠️ **${APP_ID}**: el info.md dice v${VERSION} pero el último release es **${ANY_RELEASE}**\n"
+                MESSAGES="${MESSAGES}   [Ver info.md](https://github.com/$REPO/blob/main/apps/${APP_ID}/info.md) | [Ver release](https://github.com/$REPO/releases/tag/${ANY_RELEASE})\n"
+              fi
+            fi
+          done
+
+          if [ -n "$MESSAGES" ]; then
+            echo "Enviando alertas a Discord..."
+            PAYLOAD=$(jq -n --arg content "🔍 **Revisión de versiones:**\n\n${MESSAGES}" '{content: $content}')
+            curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$DISCORD_WEBHOOK"
+            echo "Alertas enviadas."
+          else
+            echo "Todo en orden. Sin desajustes de versión."
+          fi

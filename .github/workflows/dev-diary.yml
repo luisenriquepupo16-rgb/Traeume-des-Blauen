@@ -1,0 +1,94 @@
+name: Dev Diary
+
+on:
+  schedule:
+    - cron: '0 23 * * *'   # 23:00 UTC = 6 PM Cuba
+  workflow_dispatch:
+
+jobs:
+  daily-diary:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+
+    steps:
+      - name: Recopilar actividad del día
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -e
+
+          # Repositorios a revisar (edita esta lista si quieres)
+          REPOS=(
+            "Traeume-des-Blauen"
+            "nexiria"
+            "yozora-store-android"
+            "Dibujama_Android"
+            "dibujama"
+            "converty"
+            "baby-medina-android"
+          )
+
+          TODAY=$(date -u +"%Y-%m-%d")
+          SINCE=$(date -u -d "24 hours ago" +"%Y-%m-%dT%H:%M:%SZ")
+
+          TOTAL_COMMITS=0
+          REPOS_ACTIVOS=""
+          RELEASES_HOY=0
+          ISSUES_NUEVOS=0
+
+          for REPO in "${REPOS[@]}"; do
+            # Commits de las últimas 24h
+            COMMITS=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$OWNER/$REPO/commits?since=$SINCE&per_page=100" \
+              | jq 'length' 2>/dev/null || echo "0")
+
+            if [ "$COMMITS" -gt 0 ] 2>/dev/null; then
+              TOTAL_COMMITS=$((TOTAL_COMMITS + COMMITS))
+              REPOS_ACTIVOS="${REPOS_ACTIVOS}\n• \`${REPO}\`: ${COMMITS} commit(s)"
+            fi
+
+            # Releases publicados hoy
+            RELEASES=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$OWNER/$REPO/releases?per_page=10" \
+              | jq --arg since "$SINCE" '[.[] | select(.published_at > $since)] | length' 2>/dev/null || echo "0")
+            RELEASES_HOY=$((RELEASES_HOY + RELEASES))
+
+            # Issues abiertos hoy
+            ISSUES=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$OWNER/$REPO/issues?state=open&since=$SINCE&per_page=50" \
+              | jq --arg since "$SINCE" '[.[] | select(.created_at > $since)] | length' 2>/dev/null || echo "0")
+            ISSUES_NUEVOS=$((ISSUES_NUEVOS + ISSUES))
+          done
+
+          # Construir mensaje
+          if [ "$TOTAL_COMMITS" -gt 0 ] || [ "$RELEASES_HOY" -gt 0 ] || [ "$ISSUES_NUEVOS" -gt 0 ]; then
+            MSG="📓 **Diario del desarrollador — ${TODAY}**\n"
+            MSG="${MSG}• **${TOTAL_COMMITS}** commit(s) en total"
+            if [ -n "$REPOS_ACTIVOS" ]; then
+              MSG="${MSG}\n• Repos con actividad:${REPOS_ACTIVOS}"
+            fi
+            if [ "$RELEASES_HOY" -gt 0 ]; then
+              MSG="${MSG}\n• **${RELEASES_HOY}** release(s) publicado(s)"
+            fi
+            if [ "$ISSUES_NUEVOS" -gt 0 ]; then
+              MSG="${MSG}\n• **${ISSUES_NUEVOS}** issue(s) nuevo(s)"
+            fi
+            MSG="${MSG}\n\nMañana más. 💙"
+          else
+            COMENTARIOS=(
+              "Hoy no hubo movimiento. Supongo que descansaste. Bien por ti. 💙"
+              "Día tranquilo. A veces hace falta. 💙"
+              "Nada por aquí. El silencio también cuenta. 💙"
+              "Sin actividad hoy. Mañana será otro día. 💙"
+            )
+            RANDOM_INDEX=$((RANDOM % ${#COMENTARIOS[@]}))
+            MSG="📓 **Diario del desarrollador — ${TODAY}**\n\n${COMENTARIOS[$RANDOM_INDEX]}"
+          fi
+
+          PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')
+          curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$DISCORD_WEBHOOK"
+          echo "Diario enviado."
