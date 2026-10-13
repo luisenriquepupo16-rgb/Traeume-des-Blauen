@@ -26,11 +26,10 @@ jobs:
           set -e
 
           NOW_DATE=$(date -u +"%Y-%m-%d")
-          NOW_FULL=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          echo "Fecha actual: $NOW_DATE ($NOW_FULL)"
+          NOW_HOUR=$(date -u +"%H")
+          echo "Fecha actual: $NOW_DATE, hora: $NOW_HOUR"
 
           # 1. Obtener releases
-          echo "Consultando releases de $REPO..."
           RELEASES=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
             "https://api.github.com/repos/$REPO/releases?per_page=100")
 
@@ -49,19 +48,15 @@ jobs:
             }) | from_entries
           ')
 
-          echo "Conteo actual: $CURRENT"
-
           # 3. Leer Gist anterior
           GIST_CONTENT=$(curl -s -H "Authorization: Bearer $GIST_TOKEN" \
             "https://api.github.com/gists/$GIST_ID" \
             | jq -r '.files["downloads.json"].content // "{\"current\":{},\"daily\":{}}"')
 
-          echo "Gist anterior: $GIST_CONTENT"
-
           PREVIOUS=$(echo "$GIST_CONTENT" | jq -c '.current // {}')
           DAILY=$(echo "$GIST_CONTENT" | jq -c '.daily // {}')
 
-          # 4. Comparar y construir mensajes + nuevos deltas del día
+          # 4. Comparar y construir mensajes + deltas del día
           MESSAGES=""
           TODAY_DELTAS="{}"
           APPS=$(echo "$CURRENT" | jq -r 'keys[]')
@@ -72,19 +67,19 @@ jobs:
             DIFF=$((NEW - OLD))
 
             if [ "$DIFF" -gt 0 ]; then
-              MESSAGES="${MESSAGES}📥 **${APP}** tiene **${DIFF}** nueva(s) descarga(s) (total: ${NEW})\n"
+              MESSAGES="${MESSAGES}${APP}: ${DIFF} nueva(s) descarga(s)\n"
 
-              # Acumular delta del día
               TODAY_DELTAS=$(echo "$TODAY_DELTAS" | jq -c \
                 --arg a "$APP" --argjson d "$DIFF" \
                 '.[$a] = ((.[$a] // 0) + $d)')
             fi
           done
 
-          # 5. Enviar a Discord si hay novedades
+          # 5. Enviar notificación de descargas nuevas (solo si hay)
           if [ -n "$MESSAGES" ]; then
-            echo "Enviando notificación a Discord..."
-            PAYLOAD=$(jq -n --arg content "$MESSAGES" '{content: $content}')
+            echo "Enviando notificación de descargas nuevas..."
+            MSG="Nuevas descargas detectadas:\n${MESSAGES}"
+            PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')
             curl -s -X POST \
               -H "Content-Type: application/json" \
               -d "$PAYLOAD" \
@@ -103,7 +98,7 @@ jobs:
             $daily as $d |
             ($d[$date] // {}) as $existing |
             $d + { ($date): (
-              ($existing | keys) + ($today | keys) | unique | 
+              ($existing | keys) + ($today | keys) | unique |
               map({ key: ., value: (($existing[.] // 0) + ($today[.] // 0)) }) |
               from_entries
             )}
@@ -115,7 +110,6 @@ jobs:
             --argjson daily "$UPDATED_DAILY" \
             '{ current: $current, daily: $daily }')
 
-          echo "Actualizando Gist..."
           GIST_BODY=$(jq -n --arg content "$NEW_GIST" '{
             files: { "downloads.json": { content: $content } }
           }')
@@ -125,4 +119,26 @@ jobs:
             -d "$GIST_BODY" \
             "https://api.github.com/gists/$GIST_ID" > /dev/null
 
-          echo "Gist actualizado."
+          # 8. Resumen de medianoche (solo si es la hora 0)
+          if [ "$NOW_HOUR" = "00" ]; then
+            echo "Hora de resumen diario..."
+
+            DAY_TOTALS=$(echo "$UPDATED_DAILY" | jq -c --arg d "$NOW_DATE" '.[$d] // {}')
+
+            if [ "$DAY_TOTALS" != "{}" ] && [ "$(echo "$DAY_TOTALS" | jq 'length')" -gt 0 ]; then
+              SUMMARY="Resumen del dia ${NOW_DATE}:\n"
+              for APP in $(echo "$DAY_TOTALS" | jq -r 'keys[]'); do
+                COUNT=$(echo "$DAY_TOTALS" | jq -r --arg a "$APP" '.[$a]')
+                SUMMARY="${SUMMARY}${APP}: ${COUNT} descarga(s)\n"
+              done
+
+              PAYLOAD=$(jq -n --arg content "$SUMMARY" '{content: $content}')
+              curl -s -X POST \
+                -H "Content-Type: application/json" \
+                -d "$PAYLOAD" \
+                "$DISCORD_WEBHOOK"
+              echo "Resumen diario enviado."
+            else
+              echo "Sin descargas hoy. No se envia resumen."
+            fi
+          fi

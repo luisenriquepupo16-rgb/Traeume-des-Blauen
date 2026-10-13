@@ -50,6 +50,9 @@ experimentales/
 otros/
 fallidos/
 
+# ===== Pendientes (local, no se sube) =====
+Pendings/
+
 # ===== PowerShell =====
 # Backups y temporales de scripts
 *.ps1.bak
