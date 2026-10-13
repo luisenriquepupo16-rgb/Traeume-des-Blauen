@@ -114,20 +114,15 @@ jobs:
             --argjson daily "$UPDATED_DAILY" \
             '{ current: $current, daily: $daily }')
 
-          echo "Contenido a guardar en Gist: $NEW_GIST"
-
           GIST_BODY=$(jq -n --arg content "$NEW_GIST" '{
             files: { "downloads.json": { content: $content } }
           }')
-
-          echo "Enviando PATCH al Gist..."
           curl -s -X PATCH \
             -H "Authorization: Bearer $GIST_TOKEN" \
             -H "Content-Type: application/json" \
             -d "$GIST_BODY" \
-            "https://api.github.com/gists/$GIST_ID"
+            "https://api.github.com/gists/$GIST_ID" > /dev/null
 
-          echo ""
           echo "Gist actualizado."
 
           # 8. Resumen de medianoche (solo si es la hora 0)
