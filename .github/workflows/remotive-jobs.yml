@@ -21,4 +21,6 @@ jobs:
       - name: Ejecutar monitor
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
         run: python scripts/remotive_jobs.py
