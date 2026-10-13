@@ -48,10 +48,14 @@ jobs:
             }) | from_entries
           ')
 
+          echo "Conteo actual: $CURRENT"
+
           # 3. Leer Gist anterior
           GIST_CONTENT=$(curl -s -H "Authorization: Bearer $GIST_TOKEN" \
             "https://api.github.com/gists/$GIST_ID" \
             | jq -r '.files["downloads.json"].content // "{\"current\":{},\"daily\":{}}"')
+
+          echo "Gist anterior: $GIST_CONTENT"
 
           PREVIOUS=$(echo "$GIST_CONTENT" | jq -c '.current // {}')
           DAILY=$(echo "$GIST_CONTENT" | jq -c '.daily // {}')
@@ -110,14 +114,21 @@ jobs:
             --argjson daily "$UPDATED_DAILY" \
             '{ current: $current, daily: $daily }')
 
+          echo "Contenido a guardar en Gist: $NEW_GIST"
+
           GIST_BODY=$(jq -n --arg content "$NEW_GIST" '{
             files: { "downloads.json": { content: $content } }
           }')
+
+          echo "Enviando PATCH al Gist..."
           curl -s -X PATCH \
             -H "Authorization: Bearer $GIST_TOKEN" \
             -H "Content-Type: application/json" \
             -d "$GIST_BODY" \
-            "https://api.github.com/gists/$GIST_ID" > /dev/null
+            "https://api.github.com/gists/$GIST_ID"
+
+          echo ""
+          echo "Gist actualizado."
 
           # 8. Resumen de medianoche (solo si es la hora 0)
           if [ "$NOW_HOUR" = "00" ]; then

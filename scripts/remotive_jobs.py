@@ -1,56 +1,58 @@
 import os
 import requests
-from datetime import datetime, timedelta
 
 DISCORD_WEBHOOK = os.environ["DISCORD_WEBHOOK_URL"]
 
-# Palabras clave que te interesan
-PALABRAS_CLAVE = [
-    "android", "kotlin", "mobile", "móvil",
-    "flutter", "remote", "remoto",
+# Palabras clave fuertes
+PALABRAS_FUERTES = [
+    "android", "kotlin", "flutter",
 ]
 
-# Palabras que descartan la oferta
-PALABRAS_EXCLUIR = ["senior", "lead", "principal", "5+ years"]
+# Palabras clave débiles: solo si van con "remote"
+PALABRAS_DEBILES = [
+    "mobile", "developer", "engineer", "programmer",
+]
 
-# URL de la API de Remotive
+# Palabras que descartan
+PALABRAS_EXCLUIR = [
+    "senior", "lead", "principal", "5+ years",
+    "sales", "marketing", "recruiter", "power bi",
+    "webflow", "django", "fullstack", "full stack",
+    "data scientist", "devops", "qa ",
+]
+
 API_URL = "https://remotive.com/api/remote-jobs"
 
 def fetch_jobs():
-    """Obtiene todos los trabajos de Remotive."""
     response = requests.get(API_URL, timeout=30)
     response.raise_for_status()
     return response.json().get("jobs", [])
 
 def filtrar_jobs(jobs):
-    """Filtra los trabajos por palabras clave y excluidas."""
     relevantes = []
-
     for job in jobs:
         titulo = job.get("title", "").lower()
         descripcion = job.get("description", "").lower()
         tags = " ".join(job.get("tags", [])).lower()
         texto = f"{titulo} {descripcion} {tags}"
 
-        # Debe contener alguna palabra clave
-        if not any(k in texto for k in PALABRAS_CLAVE):
-            continue
-
-        # No debe contener palabras excluidas
         if any(e in texto for e in PALABRAS_EXCLUIR):
             continue
 
-        relevantes.append(job)
+        if any(k in texto for k in PALABRAS_FUERTES):
+            relevantes.append(job)
+            continue
+
+        if any(k in texto for k in PALABRAS_DEBILES) and "remote" in texto:
+            relevantes.append(job)
 
     return relevantes
 
 def enviar_discord(jobs):
-    """Envía los trabajos relevantes a Discord."""
     if not jobs:
         print("Sin ofertas relevantes.")
         return
 
-    # Máximo 5 ofertas por mensaje
     cuerpo = ""
     for job in jobs[:5]:
         titulo = job.get("title", "Sin título")
@@ -67,7 +69,6 @@ def enviar_discord(jobs):
         cuerpo += f"[Ver oferta]({url})\n"
 
     aviso = f"Ofertas remotas en Remotive:\n{cuerpo}"
-
     payload = {"content": aviso}
     requests.post(DISCORD_WEBHOOK, json=payload)
     print(f"Enviadas {len(jobs[:5])} ofertas a Discord.")
