@@ -1,0 +1,17 @@
+name: Test Worker
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probar Worker
+        run: |
+          echo "Enviando petición al Worker..."
+          curl -s -X POST "https://github-dispatch-bridge.blue-land.workers.dev" \
+            -H "Content-Type: application/json" \
+            -d '{"question": "Hola desde GitHub Actions"}'
+          echo ""
+          echo "Petición completada."
