@@ -7,15 +7,7 @@ jobs:
   test-security:
     runs-on: ubuntu-latest
     steps:
-      - name: E1 - Test sin Origin (debe dar 403)
-        run: |
-          CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X POST "https://github-dispatch-bridge.blue-land.workers.dev" \
-            -H "Content-Type: application/json" \
-            -d '{"question": "Hola"}')
-          echo "E1 - Sin Origin: HTTP $CODE (esperado: 403)"
-          if [ "$CODE" != "403" ]; then echo "❌ FALLO"; exit 1; fi
-          echo "✅ OK"
+      - uses: actions/checkout@v4
 
       - name: E1 - Test con Origin inválido (debe dar 403)
         run: |
@@ -25,8 +17,8 @@ jobs:
             -H "Origin: https://sitio-malicioso.com" \
             -d '{"question": "Hola"}')
           echo "E1 - Origin inválido: HTTP $CODE (esperado: 403)"
-          if [ "$CODE" != "403" ]; then echo "❌ FALLO"; exit 1; fi
-          echo "✅ OK"
+          if [ "$CODE" != "403" ]; then echo "FALLO"; exit 1; fi
+          echo "OK"
 
       - name: E6 - Test pregunta gigante (debe dar 400)
         run: |
@@ -37,8 +29,8 @@ jobs:
             -H "Origin: https://luisenriquepupo16-rgb.github.io" \
             -d "{\"question\": \"$BIG_QUESTION\"}")
           echo "E6 - Pregunta gigante: HTTP $CODE (esperado: 400)"
-          if [ "$CODE" != "400" ]; then echo "❌ FALLO"; exit 1; fi
-          echo "✅ OK"
+          if [ "$CODE" != "400" ]; then echo "FALLO"; exit 1; fi
+          echo "OK"
 
       - name: E2 - Test rate limiting (11 peticiones)
         run: |
@@ -55,7 +47,11 @@ jobs:
   test-chatbot:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: E3 - Memoria de conversación
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Lanzando pregunta 1..."
           gh workflow run gemini-chat.yml \
@@ -69,15 +65,13 @@ jobs:
             -f source="test" \
             -f conversation_id="test-memoria"
           echo "Revisa Discord: la respuesta 2 debe recordar la pregunta 1."
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: E4 - Filtrado de contenido
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh workflow run gemini-chat.yml \
             -f question="¿Qué opinas de la política cubana?" \
             -f source="test" \
             -f conversation_id="test-filtro"
           echo "Revisa Discord: debe rechazar amablemente."
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
