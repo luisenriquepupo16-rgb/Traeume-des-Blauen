@@ -4,7 +4,7 @@ import time
 import requests
 
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
-DISCORD_WEBHOOK = os.environ["DISCORD_WEBHOOK_URL"]
+DISCORD_WEBHOOK = os.environ["DISCORD_WEBHOOK"]
 GIST_TOKEN = os.environ["GIST_TOKEN"]
 GIST_ID = os.environ["GIST_ID"]
 QUESTION = os.environ["QUESTION"]
@@ -13,7 +13,7 @@ RESPONSE_TARGET = os.environ.get("RESPONSE_TARGET", "discord")
 
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={GEMINI_API_KEY}"
 
-# Cargar el catalog.json para dar contexto a Gemini
+
 def cargar_catalogo():
     try:
         response = requests.get(
@@ -28,7 +28,6 @@ def cargar_catalogo():
 
 
 def construir_prompt(catalogo, pregunta):
-    """Construye el prompt con el catálogo como contexto."""
     apps = catalogo.get("apps", [])
     contexto = "Catálogo de aplicaciones disponibles:\n\n"
 
@@ -54,7 +53,6 @@ Responde de forma clara y concisa, en español."""
 
 
 def llamar_gemini(prompt, max_reintentos=3):
-    """Llama a Gemini con reintentos si da 503."""
     for intento in range(max_reintentos):
         try:
             response = requests.post(
@@ -70,14 +68,12 @@ def llamar_gemini(prompt, max_reintentos=3):
 
             data = response.json()
 
-            # Si da 503, esperar y reintentar
             if data.get("error", {}).get("code") == 503:
                 espera = (intento + 1) * 5
                 print(f"Modelo saturado. Reintentando en {espera}s...")
                 time.sleep(espera)
                 continue
 
-            # Extraer respuesta
             candidates = data.get("candidates", [])
             if candidates:
                 parts = candidates[0].get("content", {}).get("parts", [])
@@ -94,7 +90,6 @@ def llamar_gemini(prompt, max_reintentos=3):
 
 
 def enviar_discord(mensaje):
-    """Envía la respuesta a Discord."""
     payload = {"content": mensaje}
     try:
         requests.post(DISCORD_WEBHOOK, json=payload, timeout=30)
@@ -104,9 +99,7 @@ def enviar_discord(mensaje):
 
 
 def guardar_gist(pregunta, respuesta):
-    """Guarda la conversación en el Gist."""
     try:
-        # Leer Gist actual
         r = requests.get(
             f"https://api.github.com/gists/{GIST_ID}",
             headers={"Authorization": f"Bearer {GIST_TOKEN}"},
@@ -118,17 +111,14 @@ def guardar_gist(pregunta, respuesta):
         except Exception:
             historial = []
 
-        # Añadir nueva entrada
         historial.append({
             "source": SOURCE,
-            "question": QUESTION,
+            "question": pregunta,
             "answer": respuesta
         })
 
-        # Guardar solo las últimas 50
         historial = historial[-50:]
 
-        # Actualizar Gist
         requests.patch(
             f"https://api.github.com/gists/{GIST_ID}",
             headers={"Authorization": f"Bearer {GIST_TOKEN}"},
@@ -155,13 +145,11 @@ def main():
 
     print(f"Respuesta: {respuesta}")
 
-    # Enviar según destino
     if RESPONSE_TARGET == "discord":
-        enviar_discord(f"💬 **Pregunta de {SOURCE}:**\n{QUESTION}\n\n**Respuesta:**\n{respuesta}")
+        enviar_discord(f"Pregunta de {SOURCE}:\n{QUESTION}\n\nRespuesta:\n{respuesta}")
     elif RESPONSE_TARGET == "gist":
         guardar_gist(QUESTION, respuesta)
 
-    # Siempre guardar en el Gist como historial
     guardar_gist(QUESTION, respuesta)
 
 
