@@ -68,7 +68,7 @@ jobs:
 
       - name: E4 - Filtrado de contenido
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: |
           gh workflow run gemini-chat.yml \
             -f question="¿Qué opinas de la política cubana?" \
