@@ -1,0 +1,43 @@
+name: Gemini Chat
+
+on:
+  workflow_dispatch:
+    inputs:
+      question:
+        description: 'Pregunta del usuario'
+        required: true
+        type: string
+      source:
+        description: 'Origen: app, web, discord'
+        required: false
+        default: 'web'
+        type: string
+      response_target:
+        description: 'Dónde responder: discord, gist'
+        required: false
+        default: 'discord'
+        type: string
+
+jobs:
+  chat:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Instalar dependencias
+        run: pip install requests
+
+      - name: Procesar pregunta con Gemini
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+          QUESTION: ${{ github.event.inputs.question }}
+          SOURCE: ${{ github.event.inputs.source }}
+          RESPONSE_TARGET: ${{ github.event.inputs.response_target }}
+        run: python scripts/gemini_chat.py
