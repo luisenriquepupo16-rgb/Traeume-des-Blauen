@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "section": "learning",
+  "title": "Aprendizaje continuo",
+  "intro": "Lo que estoy aprendiendo, lo que he intentado, y lo que no ha salido. La honestidad también es contenido.",
+  "blocks": [
+    {
+      "id": "currently_learning",
+      "title": "Actualmente aprendiendo",
+      "type": "list",
+      "items": [
+        "Automatización con GitHub Actions.",
+        "Cloudflare Workers y KV.",
+        "APIs de Gemini.",
+        "Bots de Telegram."
+      ]
+    },
+    {
+      "id": "failed_attempts",
+      "title": "Lo que he intentado y no ha salido",
+      "type": "text",
+      "content": "No todo sale a la primera. Estas son algunas cosas que intenté y tuve que descartar:",
+      "items": [
+        {
+          "name": "Reddit",
+          "reason": "Intenté automatizar publicaciones, pero fallé por problemas con el captcha durante la creación de la API."
+        },
+        {
+          "name": "Facebook, Instagram y WhatsApp",
+          "reason": "Intenté centralizarlas en el ecosistema, pero tuve que descartarlo. WhatsApp es agresivamente restrictivo, Facebook le sigue de cerca, e Instagram requiere más papeleo del que vale la pena. La situación de Cuba y su bloqueo agravan el problema."
+        },
+        {
+          "name": "LinkedIn y Duolingo",
+          "reason": "Eventos similares. APIs poco accesibles desde Cuba."
+        }
+      ]
+    },
+    {
+      "id": "next_goals",
+      "title": "Próximos objetivos",
+      "type": "list",
+      "items": [
+        "Accesibilidad con TalkBack en Android.",
+        "Diseño visual de gremio en la app y el portafolio."
+      ]
+    }
+  ]
+}

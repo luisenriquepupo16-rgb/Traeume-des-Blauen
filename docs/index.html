@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Portafolio de Dreamer (Luisi), desarrollador Android autodidacta desde Cuba. Aplicaciones móviles con Kotlin y Jetpack Compose.">
     <meta name="author" content="Dreamer (Luisi)">
-    
+
     <!-- Open Graph -->
     <meta property="og:title" content="Dreamer · Träume des Blauen">
     <meta property="og:description" content="Portafolio de Dreamer, desarrollador Android desde Cuba.">
     <meta property="og:image" content="assets/og_image.png">
     <meta property="og:type" content="website">
-    
+
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="assets/favicon.png">
     <link rel="apple-touch-icon" href="assets/logo_header.png">
-    
+
     <title>Dreamer · Träume des Blauen</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -52,7 +52,7 @@
 
 <main>
 
-    <!-- ===== Sección: Sobre mí ===== -->
+    <!-- ===== Sección: Sobre mí (estática) ===== -->
     <section id="sobre-mi" class="section">
         <h2>Sobre mí</h2>
         <div class="about-content">
@@ -72,138 +72,85 @@
         </div>
     </section>
 
-    <!-- ===== Sección: Proyectos ===== -->
+    <!-- ===== Sección: Proyectos publicados (dinámica, catalog.json) ===== -->
     <section id="proyectos" class="section">
         <h2>Proyectos publicados</h2>
         <p class="section-intro">Todas las aplicaciones que he desarrollado y publicado. Cada una está disponible para descargar libremente.</p>
-        
+
         <div id="projectsGrid" class="projects-grid" role="list">
             <p class="loading-message">Cargando proyectos…</p>
         </div>
     </section>
 
-    <!-- ===== Sección: Retos técnicos ===== -->
+    <!-- ===== Sección: Retos técnicos (vitrina) ===== -->
     <section id="retos" class="section">
         <h2>Retos técnicos</h2>
-        <p class="section-intro">Problemas concretos que he encontrado durante el desarrollo de Träume des Blauen, y cómo los he resuelto.</p>
+        <p class="section-intro">Problemas concretos que he encontrado durante el desarrollo, y cómo los he resuelto. Aquí van los más destacados.</p>
 
-        <div class="challenges-grid">
+        <div id="challengesPreview" class="challenges-grid">
+            <p class="loading-message">Cargando retos…</p>
+        </div>
 
-            <article class="challenge-card">
-                <h3>Transsion bloquea <code>Android/data/</code></h3>
-                <p class="challenge-context">En dispositivos Transsion (marca común en Cuba), el sistema bloquea el acceso a <code>Android/data/</code>. Las apps que guardan datos ahí no pueden leerlos.</p>
-                <p class="challenge-solution"><strong>Solución:</strong> usar <code>context.filesDir</code> en lugar de <code>Android/data/</code>. Es una carpeta privada de la app, siempre accesible.</p>
-                <p class="challenge-lesson"><strong>Aprendizaje:</strong> nunca asumir que las APIs estándar funcionan igual en todas las marcas.</p>
-            </article>
-
-            <article class="challenge-card">
-                <h3>DownloadManager no puede escribir en <code>filesDir</code></h3>
-                <p class="challenge-context"><code>DownloadManager</code> es un servicio del sistema que gestiona descargas. Pero no puede escribir en la carpeta privada de la app (<code>filesDir</code>), porque es una carpeta aislada.</p>
-                <p class="challenge-solution"><strong>Solución:</strong> sustituir <code>DownloadManager</code> por Ktor (cliente HTTP) y descargar directamente con <code>FileOutputStream</code>.</p>
-                <p class="challenge-lesson"><strong>Aprendizaje:</strong> no todas las herramientas del sistema son universales. A veces hay que bajar un nivel y hacerlo uno mismo.</p>
-            </article>
-
-            <article class="challenge-card">
-                <h3>El instalador no abre después de descargar</h3>
-                <p class="challenge-context">Después de descargar un APK, el botón "Instalar" no se actualizaba correctamente. A veces se quedaba en "Instalar" después de instalar, a veces no cambiaba a "Abrir".</p>
-                <p class="challenge-solution"><strong>Solución:</strong> rediseñar el sistema de estados. Usar un <code>Foreground Service</code> para descargas, un <code>PackageChangeReceiver</code> para detectar cambios en paquetes, y un <code>Map&lt;String, AppStatus&gt;</code> en el ViewModel como única fuente de verdad.</p>
-                <p class="challenge-lesson"><strong>Aprendizaje:</strong> cuando algo falla por "timing", la solución no es añadir más <code>delay()</code>. Es rediseñar la arquitectura para que no dependa del timing.</p>
-            </article>
-
-            <article class="challenge-card">
-                <h3>Perder el progreso de descarga al salir de la app</h3>
-                <p class="challenge-context">Si el usuario salía de la app durante una descarga, la descarga se interrumpía. Al volver, había que empezar de cero.</p>
-                <p class="challenge-solution"><strong>Solución:</strong> migrar de una corrutina en el ViewModel a un <code>Foreground Service</code> con notificación persistente. La descarga sobrevive a que la app pase a background.</p>
-                <p class="challenge-lesson"><strong>Aprendizaje:</strong> las tareas largas no deben depender del ciclo de vida de la UI. Deben vivir en un servicio independiente.</p>
-            </article>
-
-            <article class="challenge-card">
-                <h3>Cancelar una descarga no la cancelaba</h3>
-                <p class="challenge-context">El botón "Cancelar" del diálogo cerraba el diálogo, pero la descarga seguía en segundo plano. Al terminar, el archivo aparecía completo.</p>
-                <p class="challenge-solution"><strong>Solución:</strong> el botón "Cancelar" envía una señal al servicio (<code>ACTION_CANCEL</code>), que cancela el <code>Job</code> de la corrutina y borra el archivo parcial.</p>
-                <p class="challenge-lesson"><strong>Aprendizaje:</strong> "Cancelar" en una UI no es solo cerrar el diálogo. Es detener el proceso real.</p>
-            </article>
-
+        <div class="see-all-cta" id="challengesSeeAll">
+            <a href="retos/index.html" class="btn-secondary">Ver todos los retos →</a>
         </div>
     </section>
 
-    <!-- ===== Sección: Contribuciones open source ===== -->
+    <!-- ===== Sección: Open source (vitrina) ===== -->
     <section id="open-source" class="section">
         <h2>Contribuciones open source</h2>
         <p class="section-intro">He contribuido a proyectos de código abierto reconocidos en el ecosistema Python.</p>
 
-        <div class="opensource-grid">
-
-            <article class="opensource-card">
-                <h3>FastAPI-Users</h3>
-                <p class="opensource-detail">PR #1564 — Fusionado</p>
-                <p class="opensource-description">Corrección en el proyecto FastAPI-Users, revisada y fusionada por el mantenedor principal del proyecto.</p>
-            </article>
-
-            <article class="opensource-card">
-                <h3>Pydantic</h3>
-                <p class="opensource-detail">PR #12953 — Fusionado</p>
-                <p class="opensource-description">Corrección en el proyecto Pydantic, revisada y fusionada por un mantenedor activo. Pydantic es una de las librerías de validación de datos más usadas del ecosistema Python.</p>
-            </article>
-
+        <div id="opensourcePreview" class="opensource-grid">
+            <p class="loading-message">Cargando contribuciones…</p>
         </div>
 
         <p class="opensource-note">Contribuí a estos proyectos durante una etapa de aprendizaje y exploración del ecosistema open source.</p>
     </section>
 
-    <!-- ===== Sección: Blog / Notas ===== -->
+    <!-- ===== Sección: Blog (vitrina) ===== -->
     <section id="blog" class="section">
         <h2>Blog / Notas</h2>
         <p class="section-intro">Notas técnicas sobre el proceso de construcción de mis proyectos. Sin pretensiones de tutorial, solo documentación honesta de lo que he hecho y aprendido.</p>
 
-        <div class="blog-grid">
-
-            <article class="blog-card">
-                <h3><a href="blog/descargas-background.html">Cómo resolví el problema de las descargas en background en Android</a></h3>
-                <p class="blog-date">Octubre 2026</p>
-                <p class="blog-excerpt">El problema: cuando el usuario salía de la app, la descarga se interrumpía. La solución: Foreground Service con notificación persistente. El aprendizaje: las tareas largas no deben depender del ciclo de vida de la UI.</p>
-            </article>
-
-            <article class="blog-card">
-                <h3><a href="blog/catalogo-json.html">Cómo estructuré el catálogo de apps con un JSON generado automáticamente</a></h3>
-                <p class="blog-date">Octubre 2026</p>
-                <p class="blog-excerpt">El problema: mantener un catálogo actualizado a mano era tedioso. La solución: un workflow de GitHub Actions que genera un <code>catalog.json</code> desde la estructura de carpetas. El aprendizaje: separar contenido de presentación.</p>
-            </article>
-
-            <article class="blog-card">
-                <h3><a href="blog/portafolio-sin-romper-app.html">Cómo convertí la web del catálogo en un portafolio sin romper la app</a></h3>
-                <p class="blog-date">Octubre 2026</p>
-                <p class="blog-excerpt">El problema: la web ya no se usaba, pero la app dependía de <code>catalog.json</code>. La solución: mantener el JSON intacto y reescribir solo la presentación. El aprendizaje: separar datos de interfaz es clave para escalar.</p>
-            </article>
-
+        <div id="blogPreview" class="blog-grid">
+            <p class="loading-message">Cargando entradas…</p>
         </div>
 
-        <div class="blog-cta">
-            <a href="blog/index.html" class="btn-secondary">Ver todas las entradas</a>
+        <div class="see-all-cta" id="blogSeeAll">
+            <a href="blog/index.html" class="btn-secondary">Ver todas las entradas →</a>
         </div>
     </section>
 
-    <!-- ===== Sección: Proyectos en progreso ===== -->
+    <!-- ===== Sección: Proyectos en progreso (vitrina) ===== -->
     <section id="en-progreso" class="section">
         <h2>Proyectos en progreso</h2>
         <p class="section-intro">Cosas en las que estoy trabajando ahora mismo. No todo tiene que estar terminado para ser interesante.</p>
 
-        <div class="placeholder-box">
-            <p>🚧 Próximamente. Estoy preparando varios proyectos que quiero compartir aquí.</p>
+        <div id="inProgressPreview" class="projects-grid">
+            <p class="loading-message">Cargando proyectos…</p>
+        </div>
+
+        <div class="see-all-cta" id="inProgressSeeAll">
+            <a href="proyectos/index.html" class="btn-secondary">Ver todos los proyectos →</a>
         </div>
     </section>
 
-    <!-- ===== Sección: Aprendizaje continuo ===== -->
+    <!-- ===== Sección: Aprendizaje continuo (vitrina) ===== -->
     <section id="aprendizaje" class="section">
         <h2>Aprendizaje continuo</h2>
         <p class="section-intro">Lo que estoy aprendiendo, lo que he intentado, y lo que no ha salido. La honestidad también es contenido.</p>
 
-        <div class="placeholder-box">
-            <p>🚧 Próximamente. Estoy documentando mi proceso de aprendizaje.</p>
+        <div id="learningPreview">
+            <p class="loading-message">Cargando…</p>
+        </div>
+
+        <div class="see-all-cta" id="learningSeeAll">
+            <a href="aprendizaje/index.html" class="btn-secondary">Ver todo →</a>
         </div>
     </section>
 
-    <!-- ===== Sección: Servicios (Forja) ===== -->
+    <!-- ===== Sección: Servicios (estática) ===== -->
     <section id="servicios" class="section">
         <h2>Servicios — La Forja</h2>
         <p class="section-intro">Además de mis aplicaciones publicadas, ofrezco servicios de desarrollo de aplicaciones Android personalizadas. Cada proyecto se evalúa caso por caso.</p>
@@ -238,7 +185,7 @@
         </div>
     </section>
 
-    <!-- ===== Sección: Contacto ===== -->
+    <!-- ===== Sección: Contacto (estática) ===== -->
     <section id="contacto" class="section">
         <h2>Contacto</h2>
         <p class="section-intro">¿Tienes una idea? ¿Quieres encargar una aplicación? ¿O simplemente saludar? Aquí me encuentras.</p>
@@ -303,12 +250,10 @@
 <!-- CHAT FLOTANTE                                                -->
 <!-- ============================================================ -->
 
-<!-- Burbuja flotante -->
 <button class="chat-bubble" id="chatBubble" aria-label="Abrir chat">
     <span class="chat-bubble-icon">💬</span>
 </button>
 
-<!-- Panel de chat -->
 <div class="chat-panel" id="chatPanel" aria-hidden="true">
     <header class="chat-header">
         <div class="chat-header-title">
@@ -324,9 +269,7 @@
         </div>
     </header>
 
-    <div class="chat-messages" id="chatMessages" role="log" aria-live="polite">
-        <!-- Los mensajes se renderizan aquí dinámicamente -->
-    </div>
+    <div class="chat-messages" id="chatMessages" role="log" aria-live="polite"></div>
 
     <form class="chat-input-form" id="chatForm">
         <input

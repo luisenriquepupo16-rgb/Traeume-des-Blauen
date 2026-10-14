@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Cómo automaticé mi ecosistema de desarrollo con GitHub Actions y Discord.">
+    <meta name="author" content="Dreamer (Luisi)">
+    <title>Cómo automaticé mi ecosistema de desarrollo con GitHub Actions y Discord — Dreamer</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../shared.css">
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span class="theme-icon">🌙</span>
+    <span class="theme-label">Modo oscuro</span>
+</button>
+
+<nav class="internal-nav" aria-label="Navegación">
+    <a href="../index.html" class="back">← Volver al portafolio</a>
+    <a href="index.html">Blog</a>
+</nav>
+
+<article class="article">
+
+    <header class="article-header">
+        <p class="article-meta">Octubre 2026 · Automatización</p>
+        <h1>Cómo automaticé mi ecosistema de desarrollo con GitHub Actions y Discord</h1>
+    </header>
+
+    <div class="article-content">
+
+        <p>Durante los últimos meses he construido, poco a poco, un ecosistema de automatización alrededor de mi proyecto. GitHub Actions corre workflows que hacen cosas sin que yo tenga que hacerlas. Discord recibe notificaciones. Los Gists almacenan estado. Y todo se comunica entre sí sin intervención manual. Este es un repaso de cómo funciona.</p>
+
+        <h2>El punto de partida</h2>
+
+        <p>Al principio, todo era manual. Cuando terminaba un build, iba a GitHub a ver si había fallado. Cuando quería saber cuántas descargas tenía una app, entraba al panel de releases. Cuando quería publicar una nueva versión, ejecutaba un script en PowerShell.</p>
+
+        <p>Era sostenible cuando tenía 1 proyecto. Insostenible cuando tenía 5. Y ya estaba empezando a perder cosas por el camino: releases sin hacer, builds sin revisar, versiones desincronizadas.</p>
+
+        <h2>La idea: GitHub Actions como centro de operaciones</h2>
+
+        <p>La solución fue usar <strong>GitHub Actions</strong> como el centro de todo. Todos los repositorios tienen workflows que se disparan en momentos específicos (push, cron, workflow_dispatch) y hacen cosas concretas. La comunicación con el exterior se hace a través de <strong>webhooks de Discord</strong> y de un <strong>Gist central</strong> que actúa como almacén de estado compartido.</p>
+
+        <p>El Gist es clave. Es un archivo JSON público (o privado, según cómo lo configures) que todos los workflows leen y escriben. Sirve como "memoria compartida" entre workflows que no se conocen entre sí.</p>
+
+        <h2>Los workflows que tengo</h2>
+
+        <h3>1. Release and Catalog</h3>
+
+        <p>Cuando hay cambios en <code>apps/</code>, este workflow:</p>
+
+        <ul>
+            <li>Detecta qué app ha cambiado.</li>
+            <li>Crea (o recrea) el release de GitHub con el APK y el icono.</li>
+            <li>Ejecuta un script PowerShell que regenera <code>catalog.json</code>.</li>
+            <li>Hace commit del JSON actualizado con <code>[skip ci]</code> para no dispararse a sí mismo.</li>
+        </ul>
+
+        <p>Es el workflow más importante del proyecto. Sin él, la app no sabría qué apps existen.</p>
+
+        <h3>2. Download Notifier</h3>
+
+        <p>Corre cada 15 minutos. Consulta las estadísticas de descargas de todos los releases, las compara con el estado anterior (guardado en el Gist), y si hay descargas nuevas, notifica a Discord. También guarda un histórico diario para tener estadísticas a largo plazo.</p>
+
+        <h3>3. Version Checker</h3>
+
+        <p>Corre cada día a las 6 AM UTC. Compara la versión declarada en cada <code>info.md</code> con la versión del último release publicado. Si no coinciden, avisa a Discord. Así sé si me he olvidado de crear un release.</p>
+
+        <h3>4. Issue Responder</h3>
+
+        <p>Cuando alguien abre un issue en el repositorio, este workflow:</p>
+
+        <ul>
+            <li>Etiqueta el issue según su contenido (bug, sugerencia, encargo, triage).</li>
+            <li>Responde automáticamente con un mensaje apropiado.</li>
+            <li>Notifica a Discord.</li>
+        </ul>
+
+        <p>Además, un job programado cierra issues inactivos después de 30 días, con un aviso previo.</p>
+
+        <h3>5. Dev Diary</h3>
+
+        <p>Cada día a las 6 PM (hora de Cuba), este workflow recopila la actividad del día en varios repositorios: commits, releases, issues. Si hubo movimiento, envía un resumen a Discord. Si no, envía un mensaje gracioso del tipo "hoy no hubo movimiento, supongo que descansaste".</p>
+
+        <h3>6. Repo Thermometer</h3>
+
+        <p>Cada domingo, calcula un "termómetro" de actividad semanal: cuántos commits, releases e issues hubo en todos los repositorios. Lo clasifica (semana muerta, tranquila, normal, muy movida) y lo envía a Discord.</p>
+
+        <h3>7. Workflow Failure Alert</h3>
+
+        <p>Escucha a los otros workflows. Si alguno falla, notifica a Discord con un enlace al log. Así me entero de los problemas sin tener que ir a GitHub a revisar.</p>
+
+        <h3>8. Gemini Chat</h3>
+
+        <p>Es el workflow del chatbot. Cuando un cliente (la web, la app, o un bot de Discord) envía una pregunta, este workflow:</p>
+
+        <ul>
+            <li>Carga el catálogo de apps.</li>
+            <li>Construye un prompt con el catálogo como contexto + el historial de la conversación.</li>
+            <li>Llama a Gemini con reintentos automáticos.</li>
+            <li>Envía la respuesta a Discord o la guarda en el Gist (según el cliente).</li>
+        </ul>
+
+        <h2>La comunicación con Discord</h2>
+
+        <p>Discord actúa como mi "panel de control". Recibo notificaciones de:</p>
+
+        <ul>
+            <li>Descargas nuevas de mis apps.</li>
+            <li>Releases publicados.</li>
+            <li>Issues abiertos.</li>
+            <li>Workflows fallidos.</li>
+            <li>Resúmenes diarios y semanales.</li>
+            <li>Respuestas del chatbot.</li>
+        </ul>
+
+        <p>Todo llega a un canal privado que solo yo veo. Es como tener un asistente que me avisa de todo lo que pasa sin que yo tenga que revisar nada.</p>
+
+        <h2>Lo que aprendí</h2>
+
+        <p>Tres lecciones:</p>
+
+        <ol>
+            <li><strong>El Gist como memoria compartida es muy potente.</strong> Permite que workflows independientes se comuniquen sin necesidad de un backend real. Es una solución simple y gratuita.</li>
+            <li><strong>Automatizar la comunicación es tan importante como automatizar las tareas.</strong> De nada sirve que un workflow se ejecute si tú no te enteras de que ha pasado. Las notificaciones son lo que cierra el ciclo.</li>
+            <li><strong>Empezar pequeño y crecer.</strong> No empecé con 8 workflows. Empecé con 1 (release-and-catalog). Luego añadí 2. Luego 3. Cada uno resolvía un problema concreto. No intenté hacerlo todo a la vez.</li>
+        </ol>
+
+        <h2>Conclusión</h2>
+
+        <p>Este ecosistema me ha ahorrado horas y horas de trabajo manual. Lo que antes era "revisar GitHub todos los días" ahora es "recibir notificaciones en Discord". Lo que antes era "actualizar un JSON a mano" ahora es "hacer push y olvidarse".</p>
+
+        <p>Si estás empezando con GitHub Actions, mi recomendación es: automatiza primero las cosas que haces todos los días. Luego las que haces cada semana. Luego las que haces cada mes. No intentes automatizar todo el primer día.</p>
+
+    </div>
+
+</article>
+
+<nav class="article-nav">
+    <a href="portafolio-sin-romper-app.html">← Entrada anterior</a>
+    <a href="monitor-empleo.html">Siguiente entrada →</a>
+</nav>
+
+<footer class="main-footer">
+    <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
+</footer>
+
+<script src="../shared.js"></script>
+
+</body>
+</html>

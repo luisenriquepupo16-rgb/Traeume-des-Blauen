@@ -8,7 +8,7 @@
     <title>Cómo resolví el problema de las descargas en background — Dreamer</title>
     <link rel="icon" type="image/png" href="../assets/favicon.png">
     <link rel="stylesheet" href="../style.css">
-    <link rel="stylesheet" href="blog.css">
+    <link rel="stylesheet" href="../shared.css">
 </head>
 <body>
 
@@ -17,8 +17,8 @@
     <span class="theme-label">Modo oscuro</span>
 </button>
 
-<nav class="main-nav" aria-label="Navegación principal">
-    <a href="../index.html">← Volver al portafolio</a>
+<nav class="internal-nav" aria-label="Navegación">
+    <a href="../index.html" class="back">← Volver al portafolio</a>
     <a href="index.html">Blog</a>
 </nav>
 
@@ -118,37 +118,7 @@
     <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
 </footer>
 
-<script>
-    (function() {
-        const toggle = document.getElementById("themeToggle");
-        const icon = toggle.querySelector(".theme-icon");
-        const label = toggle.querySelector(".theme-label");
-        const saved = localStorage.getItem("theme") || "light";
-
-        function applyTheme(theme) {
-            if (theme === "dark") {
-                document.documentElement.setAttribute("data-theme", "dark");
-                icon.textContent = "☀️";
-                label.textContent = "Modo claro";
-            } else {
-                document.documentElement.removeAttribute("data-theme");
-                icon.textContent = "🌙";
-                label.textContent = "Modo oscuro";
-            }
-        }
-
-        applyTheme(saved);
-
-        toggle.addEventListener("click", function() {
-            const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-            const newTheme = isDark ? "light" : "dark";
-            localStorage.setItem("theme", newTheme);
-            applyTheme(newTheme);
-        });
-
-        document.getElementById("year").textContent = new Date().getFullYear();
-    })();
-</script>
+<script src="../shared.js"></script>
 
 </body>
 </html>

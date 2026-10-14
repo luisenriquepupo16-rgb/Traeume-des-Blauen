@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "section": "projects_in_progress",
+  "title": "Proyectos en progreso",
+  "intro": "Cosas en las que estoy trabajando ahora mismo. No todo tiene que estar terminado para ser interesante.",
+  "items": [
+    {
+      "id": "automation_ecosystem",
+      "title": "Ecosistema de automatización",
+      "description": "Workflows de GitHub Actions que automatizan tareas de desarrollo, monitoreo y comunicación. Incluye notificaciones a Discord, respuestas automáticas a issues, verificación de versiones, y más. Todo está integrado en un solo repositorio que actúa como centro de operaciones del proyecto.",
+      "status": "en desarrollo activo",
+      "technologies": ["GitHub Actions", "Bash", "Python", "PowerShell", "Cloudflare Workers"]
+    },
+    {
+      "id": "gemini_chatbot",
+      "title": "Chatbot con Gemini",
+      "description": "Asistente del catálogo que responde preguntas sobre las aplicaciones publicadas, con memoria de conversación y contexto del catálogo. Funciona desde el portafolio web, desde la app Android, y desde Discord. Guarda el historial de forma anónima y monitorea el uso de la API para evitar abusos.",
+      "status": "en desarrollo",
+      "technologies": ["Cloudflare Workers", "Gemini API", "Python", "Gist"]
+    },
+    {
+      "id": "portfolio_web",
+      "title": "Portafolio web",
+      "description": "Sitio que muestra mis proyectos, retos técnicos, contribuciones open source y blog. Diseñado con un estilo de gremio coherente con la app Träume des Blauen. Se actualiza automáticamente cuando hay cambios en el catálogo o en el contenido.",
+      "status": "en desarrollo",
+      "technologies": ["HTML", "CSS", "JavaScript", "GitHub Pages"]
+    }
+  ]
+}

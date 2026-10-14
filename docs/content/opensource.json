@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "section": "opensource",
+  "title": "Contribuciones open source",
+  "intro": "He contribuido a proyectos de código abierto reconocidos en el ecosistema Python.",
+  "items": [
+    {
+      "id": "fastapi_users",
+      "project": "FastAPI-Users",
+      "detail": "PR #1564 — Fusionado",
+      "description": "Corrección en el proyecto FastAPI-Users, revisada y fusionada por el mantenedor principal del proyecto."
+    },
+    {
+      "id": "pydantic",
+      "project": "Pydantic",
+      "detail": "PR #12953 — Fusionado",
+      "description": "Corrección en el proyecto Pydantic, revisada y fusionada por un mantenedor activo. Pydantic es una de las librerías de validación de datos más usadas del ecosistema Python."
+    }
+  ],
+  "note": "Contribuí a estos proyectos durante una etapa de aprendizaje y exploración del ecosistema open source."
+}

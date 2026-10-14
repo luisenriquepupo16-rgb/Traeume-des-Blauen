@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Proyectos en progreso de Dreamer. Cosas en las que estoy trabajando ahora mismo.">
+    <meta name="author" content="Dreamer (Luisi)">
+    <title>Proyectos en progreso — Dreamer</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../shared.css">
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span class="theme-icon">🌙</span>
+    <span class="theme-label">Modo oscuro</span>
+</button>
+
+<nav class="internal-nav" aria-label="Navegación">
+    <a href="../index.html" class="back">← Volver al portafolio</a>
+    <a href="../blog/index.html">Blog</a>
+    <a href="../retos/index.html">Retos</a>
+    <a href="../aprendizaje/index.html">Aprendizaje</a>
+    <a href="../open-source/index.html">Open source</a>
+</nav>
+
+<header class="internal-header">
+    <h1>Proyectos en progreso</h1>
+    <p class="tagline">Cosas en las que estoy trabajando ahora mismo</p>
+</header>
+
+<main class="internal-content">
+    <p class="internal-intro" id="proyectosIntro">No todo tiene que estar terminado para ser interesante. Aquí van los proyectos que estoy desarrollando.</p>
+    <div id="proyectosContainer" class="projects-grid-page">
+        <p class="loading-message">Cargando proyectos…</p>
+    </div>
+</main>
+
+<footer class="main-footer">
+    <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
+    <p class="footer-tagline">Aplicaciones sencillas, útiles y hechas con claridad.</p>
+</footer>
+
+<script src="../shared.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", async () => {
+        const data = await loadJson("../content/projects.json");
+        if (data && data.intro) {
+            document.getElementById("proyectosIntro").textContent = data.intro;
+        }
+        renderInProgressFull(data, "proyectosContainer");
+    });
+</script>
+
+</body>
+</html>

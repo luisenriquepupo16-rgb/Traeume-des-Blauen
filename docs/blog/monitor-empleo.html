@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Cómo construí un monitor de empleo remoto con Python, Telegram y Discord.">
+    <meta name="author" content="Dreamer (Luisi)">
+    <title>Cómo construí un monitor de empleo remoto con Python, Telegram y Discord — Dreamer</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../shared.css">
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span class="theme-icon">🌙</span>
+    <span class="theme-label">Modo oscuro</span>
+</button>
+
+<nav class="internal-nav" aria-label="Navegación">
+    <a href="../index.html" class="back">← Volver al portafolio</a>
+    <a href="index.html">Blog</a>
+</nav>
+
+<article class="article">
+
+    <header class="article-header">
+        <p class="article-meta">Octubre 2026 · Automatización</p>
+        <h1>Cómo construí un monitor de empleo remoto con Python, Telegram y Discord</h1>
+    </header>
+
+    <div class="article-content">
+
+        <p>Vivir en Cuba y buscar trabajo remoto en el sector tecnológico es complicado. Las plataformas habituales (LinkedIn, Indeed) tienen acceso restringido desde aquí. Y las que funcionan suelen estar en inglés y con ofertas de nivel senior. Así que construí un sistema que busca ofertas en fuentes accesibles desde Cuba, las filtra por relevancia para mi perfil, y las envía a Discord sin repetir las ya vistas.</p>
+
+        <h2>El problema</h2>
+
+        <p>Quería buscar trabajo remoto, pero:</p>
+
+        <ul>
+            <li>LinkedIn e Indeed están bloqueados o limitados desde Cuba.</li>
+            <li>Las plataformas que funcionan tienen mucho ruido: ofertas senior, ofertas que requieren presencia física, ofertas que no son de desarrollo.</li>
+            <li>Revisar manualmente cada día es tedioso y me olvido de hacerlo.</li>
+        </ul>
+
+        <p>La solución: un sistema que lo haga por mí, todos los días, sin intervención.</p>
+
+        <h2>Las fuentes</h2>
+
+        <p>Después de investigar, elegí dos fuentes:</p>
+
+        <h3>Remotive</h3>
+
+        <p>Es una plataforma de empleo remoto con una API pública y gratuita. Devuelve ofertas de empresas de todo el mundo, muchas de ellas aceptan candidatos de cualquier país. Es accesible desde Cuba sin problemas.</p>
+
+        <h3>Telegram: CubanTech Jobs</h3>
+
+        <p>Es un grupo de Telegram donde se publican ofertas de empleo para cubanos del sector tecnológico. No tiene API oficial, pero con la librería <strong>Telethon</strong> puedo leer los mensajes del grupo como si fuera un usuario normal.</p>
+
+        <h2>La arquitectura</h2>
+
+        <p>Dos workflows de GitHub Actions, uno para cada fuente:</p>
+
+        <ul>
+            <li><code>remotive-jobs.yml</code>: consulta la API de Remotive.</li>
+            <li><code>telegram-jobs.yml</code>: lee los mensajes del grupo de Telegram.</li>
+        </ul>
+
+        <p>Ambos corren una vez al día, filtran las ofertas, y envían a Discord solo las nuevas.</p>
+
+        <h2>El filtrado</h2>
+
+        <p>Aquí está la parte más importante. Sin filtrado, el sistema enviaría 50 ofertas al día, la mayoría irrelevantes. Con filtrado, envía 1 o 2 ofertas que de verdad me interesan.</p>
+
+        <p>El filtro tiene tres niveles:</p>
+
+        <h3>Palabras clave fuertes</h3>
+
+        <p>Si la oferta menciona alguna de estas palabras, es candidata:</p>
+
+        <ul>
+            <li>android</li>
+            <li>kotlin</li>
+            <li>flutter</li>
+        </ul>
+
+        <p>Son las tecnologías que domino o quiero dominar. Si la oferta las pide, es relevante.</p>
+
+        <h3>Palabras clave débiles</h3>
+
+        <p>Si la oferta menciona alguna de estas palabras Y menciona "remote", es candidata:</p>
+
+        <ul>
+            <li>mobile</li>
+            <li>developer</li>
+            <li>engineer</li>
+            <li>programmer</li>
+        </ul>
+
+        <p>Son palabras genéricas. Por sí solas no garantizan que sea relevante, pero si van acompañadas de "remote", vale la pena mirar.</p>
+
+        <h3>Palabras de exclusión</h3>
+
+        <p>Si la oferta menciona alguna de estas palabras, se descarta:</p>
+
+        <ul>
+            <li>senior, lead, principal, 5+ years (nivel demasiado alto)</li>
+            <li>presencial (no es remoto)</li>
+            <li>sales, marketing, recruiter (no es desarrollo)</li>
+            <li>power bi, webflow, django, fullstack (fuera de mi stack)</li>
+            <li>data scientist, devops, qa (roles distintos)</li>
+        </ul>
+
+        <h2>La deduplicación</h2>
+
+        <p>El sistema corre todos los días. Si no hiciera nada, cada día me enviaría las mismas ofertas. Por eso, cada oferta se hashea (con SHA-256) y se guarda en un Gist. Antes de enviar una oferta a Discord, se verifica si el hash ya está en el Gist. Si está, se ignora. Si no está, se envía y se guarda.</p>
+
+        <p>Esto permite que el sistema corra todos los días sin spamearme.</p>
+
+        <h2>El envío a Discord</h2>
+
+        <p>Cuando hay ofertas nuevas, se envían a Discord como un mensaje formateado. Cada oferta incluye:</p>
+
+        <ul>
+            <li>Título del puesto.</li>
+            <li>Empresa.</li>
+            <li>Ubicación permitida.</li>
+            <li>Salario (si está disponible).</li>
+            <li>Enlace a la oferta original.</li>
+        </ul>
+
+        <p>Si hay más de 5 ofertas, solo se envían las 5 más relevantes para no saturar el canal.</p>
+
+        <h2>Lo que aprendí</h2>
+
+        <p>Tres lecciones:</p>
+
+        <ol>
+            <li><strong>El filtrado es más importante que la fuente.</strong> De nada sirve consultar 1000 ofertas si 990 son irrelevantes. Un buen filtro convierte 1000 ofertas en 5 útiles.</li>
+            <li><strong>La deduplicación es esencial.</strong> Sin ella, el sistema se vuelve inservible a los pocos días. Con ella, cada notificación es una oferta nueva que merece la pena mirar.</li>
+            <li><strong>Telethon es una herramienta muy potente.</strong> Permite leer mensajes de grupos de Telegram como si fueras un usuario normal. Es perfecto para automatizar este tipo de cosas sin depender de APIs oficiales que no existen.</li>
+        </ol>
+
+        <h2>Conclusión</h2>
+
+        <p>Este sistema me ha permitido encontrar ofertas que de otra forma se me habrían escapado. No es perfecto: el filtrado deja pasar algunas ofertas irrelevantes y descarta algunas relevantes. Pero es mejor que revisar manualmente todos los días.</p>
+
+        <p>Si estás en una situación similar (buscar trabajo remoto desde un país con restricciones), mi recomendación es: empieza con una sola fuente, añade un filtro básico, y ve iterando. No intentes cubrir todas las plataformas desde el primer día.</p>
+
+    </div>
+
+</article>
+
+<nav class="article-nav">
+    <a href="automatizacion-ecosistema.html">← Entrada anterior</a>
+    <a href="index.html">Todas las entradas</a>
+</nav>
+
+<footer class="main-footer">
+    <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
+</footer>
+
+<script src="../shared.js"></script>
+
+</body>
+</html>

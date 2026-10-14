@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Contribuciones open source de Dreamer a proyectos del ecosistema Python.">
+    <meta name="author" content="Dreamer (Luisi)">
+    <title>Open source — Dreamer</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../shared.css">
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span class="theme-icon">🌙</span>
+    <span class="theme-label">Modo oscuro</span>
+</button>
+
+<nav class="internal-nav" aria-label="Navegación">
+    <a href="../index.html" class="back">← Volver al portafolio</a>
+    <a href="../blog/index.html">Blog</a>
+    <a href="../retos/index.html">Retos</a>
+    <a href="../proyectos/index.html">Proyectos</a>
+    <a href="../aprendizaje/index.html">Aprendizaje</a>
+</nav>
+
+<header class="internal-header">
+    <h1>Contribuciones open source</h1>
+    <p class="tagline">Proyectos de código abierto en los que he participado</p>
+</header>
+
+<main class="internal-content">
+    <p class="internal-intro" id="opensourceIntro">He contribuido a proyectos de código abierto reconocidos en el ecosistema Python.</p>
+    <div id="opensourceContainer" class="opensource-grid-page">
+        <p class="loading-message">Cargando contribuciones…</p>
+    </div>
+    <p class="opensource-note" id="opensourceNote" style="margin-top: 40px;"></p>
+</main>
+
+<footer class="main-footer">
+    <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
+    <p class="footer-tagline">Aplicaciones sencillas, útiles y hechas con claridad.</p>
+</footer>
+
+<script src="../shared.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", async () => {
+        const data = await loadJson("../content/opensource.json");
+        if (data) {
+            if (data.intro) document.getElementById("opensourceIntro").textContent = data.intro;
+            if (data.note) document.getElementById("opensourceNote").textContent = data.note;
+        }
+        renderOpensourceFull(data, "opensourceContainer");
+    });
+</script>
+
+</body>
+</html>

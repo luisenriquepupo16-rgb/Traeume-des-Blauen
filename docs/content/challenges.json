@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "section": "challenges",
+  "title": "Retos técnicos",
+  "intro": "Problemas concretos que he encontrado durante el desarrollo de Träume des Blauen, y cómo los he resuelto.",
+  "items": [
+    {
+      "id": "transsion_block",
+      "title": "Transsion bloquea Android/data/",
+      "context": "En dispositivos Transsion (marca común en Cuba), el sistema bloquea el acceso a Android/data/. Las apps que guardan datos ahí no pueden leerlos.",
+      "solution": "Usar context.filesDir en lugar de Android/data/. Es una carpeta privada de la app, siempre accesible.",
+      "lesson": "Nunca asumir que las APIs estándar funcionan igual en todas las marcas."
+    },
+    {
+      "id": "downloadmanager_filesdir",
+      "title": "DownloadManager no puede escribir en filesDir",
+      "context": "DownloadManager es un servicio del sistema que gestiona descargas. Pero no puede escribir en la carpeta privada de la app (filesDir), porque es una carpeta aislada.",
+      "solution": "Sustituir DownloadManager por Ktor (cliente HTTP) y descargar directamente con FileOutputStream.",
+      "lesson": "No todas las herramientas del sistema son universales. A veces hay que bajar un nivel y hacerlo uno mismo."
+    },
+    {
+      "id": "install_button_timing",
+      "title": "El instalador no abre después de descargar",
+      "context": "Después de descargar un APK, el botón \"Instalar\" no se actualizaba correctamente. A veces se quedaba en \"Instalar\" después de instalar, a veces no cambiaba a \"Abrir\".",
+      "solution": "Rediseñar el sistema de estados. Usar un Foreground Service para descargas, un PackageChangeReceiver para detectar cambios en paquetes, y un Map<String, AppStatus> en el ViewModel como única fuente de verdad.",
+      "lesson": "Cuando algo falla por \"timing\", la solución no es añadir más delay(). Es rediseñar la arquitectura para que no dependa del timing."
+    },
+    {
+      "id": "lost_download_progress",
+      "title": "Perder el progreso de descarga al salir de la app",
+      "context": "Si el usuario salía de la app durante una descarga, la descarga se interrumpía. Al volver, había que empezar de cero.",
+      "solution": "Migrar de una corrutina en el ViewModel a un Foreground Service con notificación persistente. La descarga sobrevive a que la app pase a background.",
+      "lesson": "Las tareas largas no deben depender del ciclo de vida de la UI. Deben vivir en un servicio independiente."
+    },
+    {
+      "id": "cancel_not_cancelling",
+      "title": "Cancelar una descarga no la cancelaba",
+      "context": "El botón \"Cancelar\" del diálogo cerraba el diálogo, pero la descarga seguía en segundo plano. Al terminar, el archivo aparecía completo.",
+      "solution": "El botón \"Cancelar\" envía una señal al servicio (ACTION_CANCEL), que cancela el Job de la corrutina y borra el archivo parcial.",
+      "lesson": "\"Cancelar\" en una UI no es solo cerrar el diálogo. Es detener el proceso real."
+    }
+  ]
+}

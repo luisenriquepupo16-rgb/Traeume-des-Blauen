@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Retos técnicos resueltos durante el desarrollo de Träume des Blauen y otros proyectos.">
+    <meta name="author" content="Dreamer (Luisi)">
+    <title>Retos técnicos — Dreamer</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../shared.css">
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span class="theme-icon">🌙</span>
+    <span class="theme-label">Modo oscuro</span>
+</button>
+
+<nav class="internal-nav" aria-label="Navegación">
+    <a href="../index.html" class="back">← Volver al portafolio</a>
+    <a href="../blog/index.html">Blog</a>
+    <a href="../proyectos/index.html">Proyectos</a>
+    <a href="../aprendizaje/index.html">Aprendizaje</a>
+    <a href="../open-source/index.html">Open source</a>
+</nav>
+
+<header class="internal-header">
+    <h1>Retos técnicos</h1>
+    <p class="tagline">Problemas concretos y cómo los resolví</p>
+</header>
+
+<main class="internal-content">
+    <p class="internal-intro" id="retosIntro">Problemas concretos que he encontrado durante el desarrollo, y cómo los he resuelto.</p>
+    <div id="retosContainer" class="retos-grid">
+        <p class="loading-message">Cargando retos…</p>
+    </div>
+</main>
+
+<footer class="main-footer">
+    <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
+    <p class="footer-tagline">Aplicaciones sencillas, útiles y hechas con claridad.</p>
+</footer>
+
+<script src="../shared.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", async () => {
+        const data = await loadJson("../content/challenges.json");
+        if (data && data.intro) {
+            document.getElementById("retosIntro").textContent = data.intro;
+        }
+        renderChallengesFull(data, "retosContainer");
+    });
+</script>
+
+</body>
+</html>

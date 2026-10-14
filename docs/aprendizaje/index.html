@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Aprendizaje continuo de Dreamer. Lo que estoy aprendiendo, lo que he intentado, y lo que no ha salido.">
+    <meta name="author" content="Dreamer (Luisi)">
+    <title>Aprendizaje continuo — Dreamer</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../shared.css">
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span class="theme-icon">🌙</span>
+    <span class="theme-label">Modo oscuro</span>
+</button>
+
+<nav class="internal-nav" aria-label="Navegación">
+    <a href="../index.html" class="back">← Volver al portafolio</a>
+    <a href="../blog/index.html">Blog</a>
+    <a href="../retos/index.html">Retos</a>
+    <a href="../proyectos/index.html">Proyectos</a>
+    <a href="../open-source/index.html">Open source</a>
+</nav>
+
+<header class="internal-header">
+    <h1>Aprendizaje continuo</h1>
+    <p class="tagline">Lo que aprendo, lo que intento, lo que falla</p>
+</header>
+
+<main class="internal-content">
+    <p class="internal-intro" id="aprendizajeIntro">La honestidad también es contenido. Aquí documento lo que estoy aprendiendo, lo que he intentado, y lo que no ha salido.</p>
+    <div id="aprendizajeContainer" class="learning-grid-page">
+        <p class="loading-message">Cargando…</p>
+    </div>
+</main>
+
+<footer class="main-footer">
+    <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
+    <p class="footer-tagline">Aplicaciones sencillas, útiles y hechas con claridad.</p>
+</footer>
+
+<script src="../shared.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", async () => {
+        const data = await loadJson("../content/learning.json");
+        if (data && data.intro) {
+            document.getElementById("aprendizajeIntro").textContent = data.intro;
+        }
+        renderLearningFull(data, "aprendizajeContainer");
+    });
+</script>
+
+</body>
+</html>

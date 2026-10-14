@@ -8,7 +8,7 @@
     <title>Cómo convertí la web del catálogo en un portafolio sin romper la app — Dreamer</title>
     <link rel="icon" type="image/png" href="../assets/favicon.png">
     <link rel="stylesheet" href="../style.css">
-    <link rel="stylesheet" href="blog.css">
+    <link rel="stylesheet" href="../shared.css">
 </head>
 <body>
 
@@ -17,8 +17,8 @@
     <span class="theme-label">Modo oscuro</span>
 </button>
 
-<nav class="main-nav" aria-label="Navegación principal">
-    <a href="../index.html">← Volver al portafolio</a>
+<nav class="internal-nav" aria-label="Navegación">
+    <a href="../index.html" class="back">← Volver al portafolio</a>
     <a href="index.html">Blog</a>
 </nav>
 
@@ -48,7 +48,7 @@
 
         <h2>La idea</h2>
 
-        <p>Quería convertir la web en un <strong>portafolio personal</strong>. Un lugar donde mostrar mis proyectos, mis retos técnicos, mi blog, y mi contacto. Algo que me representara, no solo una lista de apps.</p>
+        <p>Quería convertir la web en un <strong>portafolio personal</strong>. Un lugar donde mostrar mis proyectos, mis retos técnicos, mi blog, y mi contacto.</p>
 
         <p>Pero había un problema: si tocaba la web, podía romper la app. La app depende de <code>catalog.json</code>. Si ese archivo desaparecía o cambiaba de URL, la app dejaba de funcionar.</p>
 
@@ -78,15 +78,11 @@
             <li>Presentación Android: la app nativa.</li>
         </ul>
 
-        <p>Los datos son la fuente única de verdad. Ambas presentaciones los leen. Cambiar una presentación no afecta a la otra.</p>
-
         <h2>El detalle que casi se me escapa</h2>
 
         <p>Cuando estaba planeando la conversión, casi cometo un error: pensé en renombrar <code>docs/</code> a algo más apropiado, como <code>web/</code>. Pero GitHub Pages sirve desde <code>docs/</code> por defecto. Si lo renombraba, la URL del <code>catalog.json</code> cambiaba, y la app dejaba de encontrarlo.</p>
 
         <p>Así que mantuve <code>docs/</code>. Menos elegante, pero funciona.</p>
-
-        <p>Otra cosa que aprendí: la URL de GitHub Pages es <code>usuario.github.io/repositorio/</code>, y sirve desde la carpeta configurada (<code>docs/</code> en este caso). Si algún día cambio la carpeta, tengo que actualizar la URL en la app también. Es un acoplamiento que hay que tener presente.</p>
 
         <h2>Lo que aprendí</h2>
 
@@ -94,15 +90,13 @@
 
         <ol>
             <li><strong>Separar datos de presentación es clave.</strong> No es solo una buena práctica teórica, tiene consecuencias prácticas cuando quieres cambiar una cosa sin tocar la otra.</li>
-            <li><strong>Las URLs son contratos.</strong> Si cambias una URL, rompes a todos los que dependen de ella. En este caso, la app dependía de la URL del JSON. Cambiarla habría sido un error grave.</li>
-            <li><strong>Los detalles de infraestructura importan.</strong> La carpeta <code>docs/</code>, el nombre del repositorio, la configuración de GitHub Pages... Son detalles que determinan la URL final. Hay que entenderlos antes de tocar nada.</li>
+            <li><strong>Las URLs son contratos.</strong> Si cambias una URL, rompes a todos los que dependen de ella.</li>
+            <li><strong>Los detalles de infraestructura importan.</strong> La carpeta <code>docs/</code>, el nombre del repositorio, la configuración de GitHub Pages... Son detalles que determinan la URL final.</li>
         </ol>
 
         <h2>Conclusión</h2>
 
         <p>Convertir la web en un portafolio fue una decisión que me permitió tener una presencia pública más coherente con lo que hago, sin arriesgar la app. La clave fue entender qué partes del sistema eran datos y cuáles eran presentación, y tratar cada una con las reglas correspondientes.</p>
-
-        <p>Si estás pensando en rediseñar algo en tu proyecto, mi recomendación es: identifica primero qué es dato y qué es presentación. Cambia la presentación todo lo que quieras. Los datos, trátalos con cuidado.</p>
 
     </div>
 
@@ -110,77 +104,14 @@
 
 <nav class="article-nav">
     <a href="catalogo-json.html">← Entrada anterior</a>
-    <a href="index.html">Todas las entradas</a>
+    <a href="automatizacion-ecosistema.html">Siguiente entrada →</a>
 </nav>
 
 <footer class="main-footer">
     <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
 </footer>
 
-<script>
-    (function() {
-        const toggle = document.getElementById("themeToggle");
-        const icon = toggle.querySelector(".theme-icon");
-        const label = toggle.querySelector(".theme-label");
-        const saved = localStorage.getItem("theme") || "light";
-
-        function applyTheme(theme) {
-            if (theme === "dark") {
-                document.documentElement.setAttribute("data-theme", "dark");
-                icon.textContent = "☀️";
-                label.textContent = "Modo claro";
-            } else {
-                document.documentElement.removeAttribute("data-theme");
-                icon.textContent = "🌙";
-                label.textContent = "Modo oscuro";
-            }
-        }
-
-        applyTheme(saved);
-
-        toggle.addEventListener("click", function() {
-            const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-            const newTheme = isDark ? "light" : "dark";
-            localStorage.setItem("theme", newTheme);
-            applyTheme(newTheme);
-        });
-
-        document.getElementById("year").textContent = new Date().getFullYear();
-    })();
-</script>
+<script src="../shared.js"></script>
 
 </body>
-</html><!DOCTYPE html>
-<html lang="es" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Cómo convertí la web del catálogo en un portafolio sin romper la app.">
-    <meta name="author" content="Dreamer (Luisi)">
-    <title>Cómo convertí la web del catálogo en un portafolio sin romper la app — Dreamer</title>
-    <link rel="icon" type="image/png" href="../assets/favicon.png">
-    <link rel="stylesheet" href="../style.css">
-    <link rel="stylesheet" href="blog.css">
-</head>
-<body>
-
-<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
-    <span class="theme-icon">🌙</span>
-    <span class="theme-label">Modo oscuro</span>
-</button>
-
-<nav class="main-nav" aria-label="Navegación principal">
-    <a href="../index.html">← Volver al portafolio</a>
-    <a href="index.html">Blog</a>
-</nav>
-
-<article class="article">
-
-    <header class="article-header">
-        <p class="article-meta">Octubre 2026 · Arquitectura web</p>
-        <h1>Cómo convertí la web del catálogo en un portafolio sin romper la app</h1>
-    </header>
-
-    <div class="article-content">
-
-        <p>Este es un relato corto sobre una decisión arquitectónica que me permitió cambiar la cara pública de mi proyecto sin tocar
+</html>

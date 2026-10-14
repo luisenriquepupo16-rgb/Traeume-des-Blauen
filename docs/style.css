@@ -530,6 +530,12 @@ code {
     margin-top: 32px;
 }
 
+/* ===== Botón "Ver todo" (genérico) ===== */
+.see-all-cta {
+    text-align: center;
+    margin-top: 32px;
+}
+
 /* ===== Placeholder ===== */
 .placeholder-box {
     background: var(--surface);
@@ -744,6 +750,104 @@ code {
     color: var(--gold);
 }
 
+/* ===== Proyectos en progreso (chips de tecnología) ===== */
+.tech-chip {
+    display: inline-block;
+    background: var(--bg-secondary);
+    color: var(--blue);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin: 2px 2px 0 0;
+    border: 1px solid var(--border);
+}
+
+[data-theme="dark"] .tech-chip {
+    color: var(--blue-light);
+}
+
+/* ===== Aprendizaje continuo ===== */
+#learningPreview {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.learning-block {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-left: 5px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    transition: all var(--transition);
+}
+
+.learning-block:hover {
+    box-shadow: var(--shadow-hover);
+    border-left-color: var(--blue);
+}
+
+.learning-block h3 {
+    font-size: 1.2rem;
+    color: var(--blue);
+    margin-bottom: 16px;
+    font-weight: 700;
+}
+
+.learning-block p {
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+}
+
+.learning-list {
+    list-style: none;
+    padding: 0;
+}
+
+.learning-list li {
+    padding: 8px 0 8px 28px;
+    position: relative;
+    border-bottom: 1px dashed var(--border);
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.learning-list li:last-child {
+    border-bottom: none;
+}
+
+.learning-list li::before {
+    content: "▸";
+    position: absolute;
+    left: 8px;
+    color: var(--gold);
+    font-weight: 700;
+}
+
+.learning-item {
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--border);
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.learning-item:last-child {
+    border-bottom: none;
+}
+
+.learning-item strong {
+    color: var(--wood-dark);
+    display: inline-block;
+    margin-right: 4px;
+}
+
+[data-theme="dark"] .learning-item strong {
+    color: var(--wood);
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 700px) {
     body {
@@ -789,6 +893,14 @@ code {
     .blog-grid {
         grid-template-columns: 1fr;
     }
+
+    .learning-block {
+        padding: 16px;
+    }
+
+    .learning-block h3 {
+        font-size: 1.05rem;
+    }
 }
 
 /* ===== Accesibilidad ===== */
@@ -829,7 +941,6 @@ button:focus-visible {
    CHAT FLOTANTE
    ================================================================ */
 
-/* ===== Burbuja flotante ===== */
 .chat-bubble {
     position: fixed;
     bottom: 24px;
@@ -861,7 +972,6 @@ button:focus-visible {
     transform: scale(0.5);
 }
 
-/* ===== Panel de chat ===== */
 .chat-panel {
     position: fixed;
     bottom: 100px;
@@ -878,7 +988,6 @@ button:focus-visible {
     flex-direction: column;
     overflow: hidden;
     z-index: 998;
-
     opacity: 0;
     pointer-events: none;
     transform: translateY(20px) scale(0.95);
@@ -891,7 +1000,6 @@ button:focus-visible {
     transform: translateY(0) scale(1);
 }
 
-/* ===== Header del chat ===== */
 .chat-header {
     display: flex;
     align-items: center;
@@ -954,7 +1062,6 @@ button:focus-visible {
     background: rgba(255, 255, 255, 0.15);
 }
 
-/* ===== Área de mensajes ===== */
 .chat-messages {
     flex: 1;
     overflow-y: auto;
@@ -1020,7 +1127,6 @@ button:focus-visible {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ===== Indicador de "escribiendo..." ===== */
 .chat-msg-typing .chat-msg-text {
     display: flex;
     align-items: center;
@@ -1037,20 +1143,14 @@ button:focus-visible {
     animation: chatTyping 1.2s infinite;
 }
 
-.chat-msg-typing .dot:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.chat-msg-typing .dot:nth-child(3) {
-    animation-delay: 0.4s;
-}
+.chat-msg-typing .dot:nth-child(2) { animation-delay: 0.2s; }
+.chat-msg-typing .dot:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes chatTyping {
     0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
     30% { opacity: 1; transform: translateY(-3px); }
 }
 
-/* ===== Formulario ===== */
 .chat-input-form {
     display: flex;
     gap: 8px;
@@ -1103,7 +1203,6 @@ button:focus-visible {
     cursor: not-allowed;
 }
 
-/* ===== Responsive del chat ===== */
 @media (max-width: 700px) {
     .chat-panel {
         bottom: 80px;
@@ -1124,14 +1223,7 @@ button:focus-visible {
     }
 }
 
-/* ===== Accesibilidad del chat ===== */
 @media (prefers-reduced-motion: reduce) {
-    .chat-msg {
-        animation: none;
-    }
-
-    .chat-msg-typing .dot {
-        animation: none;
-        opacity: 0.6;
-    }
+    .chat-msg { animation: none; }
+    .chat-msg-typing .dot { animation: none; opacity: 0.6; }
 }

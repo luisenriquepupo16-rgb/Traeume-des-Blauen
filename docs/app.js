@@ -1,7 +1,6 @@
 /* ================================================================
    PORTAFOLIO — Dreamer · Träume des Blauen
-   Lógica: carga catalog.json, carga el Gist de descargas, renderiza,
-   y gestiona el chat flotante que se comunica con el Worker.
+   Lógica: carga catálogo, Gist, contenido JSON y gestiona el chat.
    ================================================================ */
 
 // ================================================================
@@ -12,10 +11,19 @@ const GIST_DOWNLOADS_URL = "https://gist.githubusercontent.com/luisenriquepupo16
 const GIST_CHAT_URL = "https://gist.githubusercontent.com/luisenriquepupo16-rgb/40391b1420b19d763eff10e35d1aec63/raw/chat_history.json";
 const WORKER_URL = "https://github-dispatch-bridge.blue-land.workers.dev";
 
-// Configuración del chat
-const CHAT_POLL_INTERVAL = 3000;      // 3 segundos
-const CHAT_MAX_ATTEMPTS = 30;         // 30 intentos
-const CHAT_TIMEOUT_MS = 90000;        // 90 segundos
+const CONTENT_CHALLENGES = "content/challenges.json";
+const CONTENT_OPENSOURCE = "content/opensource.json";
+const CONTENT_BLOG = "content/blog.json";
+const CONTENT_PROJECTS = "content/projects.json";
+const CONTENT_LEARNING = "content/learning.json";
+
+const PREVIEW_COUNT_CHALLENGES = 3;
+const PREVIEW_COUNT_BLOG = 3;
+const PREVIEW_COUNT_PROJECTS = 3;
+const PREVIEW_COUNT_LEARNING = 2;
+
+const CHAT_POLL_INTERVAL = 3000;
+const CHAT_TIMEOUT_MS = 90000;
 const CHAT_STORAGE_KEY = "chat_history_local";
 const CHAT_CONV_ID_KEY = "chat_conversation_id";
 
@@ -45,10 +53,7 @@ function formatNumber(n) {
 }
 
 function generateUUID() {
-    if (crypto && crypto.randomUUID) {
-        return crypto.randomUUID();
-    }
-    // Fallback para navegadores antiguos
+    if (crypto && crypto.randomUUID) return crypto.randomUUID();
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         const r = Math.random() * 16 | 0;
         const v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -56,8 +61,19 @@ function generateUUID() {
     });
 }
 
+async function loadJson(url) {
+    try {
+        const response = await fetch(url + "?t=" + Date.now(), { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+    } catch (err) {
+        console.warn(`No se pudo cargar ${url}:`, err);
+        return null;
+    }
+}
+
 // ================================================================
-// 3. TEMA CLARO / OSCURO
+// 3. TEMA
 // ================================================================
 function initTheme() {
     const toggle = document.getElementById("themeToggle");
@@ -88,22 +104,12 @@ function initTheme() {
 }
 
 // ================================================================
-// 4. CARGA DEL CATÁLOGO
+// 4. CARGA DEL CATÁLOGO Y DESCARGAS
 // ================================================================
 async function loadCatalog() {
-    try {
-        const response = await fetch(CATALOG_URL, { cache: "no-store" });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return await response.json();
-    } catch (err) {
-        console.error("Error cargando catalog.json:", err);
-        return null;
-    }
+    return loadJson(CATALOG_URL);
 }
 
-// ================================================================
-// 5. CARGA DEL GIST DE DESCARGAS
-// ================================================================
 async function loadDownloads() {
     try {
         const response = await fetch(GIST_DOWNLOADS_URL, { cache: "no-store" });
@@ -117,7 +123,7 @@ async function loadDownloads() {
 }
 
 // ================================================================
-// 6. RENDERIZADO DE PROYECTOS
+// 5. RENDERIZADO DE PROYECTOS PUBLICADOS
 // ================================================================
 function renderProjects(apps, downloads) {
     const grid = document.getElementById("projectsGrid");
@@ -127,9 +133,9 @@ function renderProjects(apps, downloads) {
         return;
     }
 
-    const sorted = [...apps].sort((a, b) => {
-        return (b.updated_at || "").localeCompare(a.updated_at || "");
-    });
+    const sorted = [...apps].sort((a, b) =>
+        (b.updated_at || "").localeCompare(a.updated_at || "")
+    );
 
     grid.innerHTML = sorted.map(app => {
         const downloadsCount = downloads[app.id] || 0;
@@ -158,9 +164,9 @@ function renderProjects(apps, downloads) {
                     <span>📅 ${escapeHtml(app.updated_at)}</span>
                     ${downloadsHtml}
                 </div>
-                <a href="${escapeHtml(app.apk?.url || '#')}" 
-                   target="_blank" 
-                   rel="noopener" 
+                <a href="${escapeHtml(app.apk?.url || '#')}"
+                   target="_blank"
+                   rel="noopener"
                    class="btn-primary"
                    style="text-align:center; padding:10px; font-size:0.9rem; margin-top:8px;">
                     📥 Descargar
@@ -171,27 +177,166 @@ function renderProjects(apps, downloads) {
 }
 
 // ================================================================
-// 7. CHAT FLOTANTE
+// 6. RENDERIZADO DE RETOS TÉCNICOS (vitrina)
+// ================================================================
+function renderChallengesPreview(data) {
+    if (!data) return;
+
+    const grid = document.getElementById("challengesPreview");
+
+    if (!data.items || data.items.length === 0) {
+        grid.innerHTML = `<p class="error-message">No hay retos publicados todavía.</p>`;
+        return;
+    }
+
+    const items = data.items.slice(0, PREVIEW_COUNT_CHALLENGES);
+
+    grid.innerHTML = items.map(item => `
+        <article class="challenge-card">
+            <h3>${escapeHtml(item.title)}</h3>
+            <p class="challenge-context">${escapeHtml(item.context)}</p>
+            <p class="challenge-solution"><strong>Solución:</strong> ${escapeHtml(item.solution)}</p>
+            <p class="challenge-lesson"><strong>Aprendizaje:</strong> ${escapeHtml(item.lesson)}</p>
+        </article>
+    `).join("");
+}
+
+// ================================================================
+// 7. RENDERIZADO DE OPEN SOURCE (vitrina completa)
+// ================================================================
+function renderOpensourcePreview(data) {
+    if (!data) return;
+
+    const grid = document.getElementById("opensourcePreview");
+
+    if (!data.items || data.items.length === 0) {
+        grid.innerHTML = `<p class="error-message">No hay contribuciones publicadas todavía.</p>`;
+        return;
+    }
+
+    grid.innerHTML = data.items.map(item => `
+        <article class="opensource-card">
+            <h3>${escapeHtml(item.project)}</h3>
+            <p class="opensource-detail">${escapeHtml(item.detail)}</p>
+            <p class="opensource-description">${escapeHtml(item.description)}</p>
+        </article>
+    `).join("");
+}
+
+// ================================================================
+// 8. RENDERIZADO DEL BLOG (vitrina)
+// ================================================================
+function renderBlogPreview(data) {
+    if (!data) return;
+
+    const grid = document.getElementById("blogPreview");
+
+    if (!data.posts || data.posts.length === 0) {
+        grid.innerHTML = `<p class="error-message">No hay entradas publicadas todavía.</p>`;
+        return;
+    }
+
+    const featured = data.posts
+        .filter(p => p.featured)
+        .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+        .slice(0, PREVIEW_COUNT_BLOG);
+
+    grid.innerHTML = featured.map(item => `
+        <article class="blog-card">
+            <h3><a href="${escapeHtml(item.url)}">${escapeHtml(item.title)}</a></h3>
+            <p class="blog-date">${escapeHtml(item.date_label || item.date)}</p>
+            <p class="blog-excerpt">${escapeHtml(item.excerpt)}</p>
+        </article>
+    `).join("");
+}
+
+// ================================================================
+// 9. RENDERIZADO DE PROYECTOS EN PROGRESO (vitrina)
+// ================================================================
+function renderInProgressPreview(data) {
+    if (!data) return;
+
+    const grid = document.getElementById("inProgressPreview");
+
+    if (!data.items || data.items.length === 0) {
+        grid.innerHTML = `<p class="error-message">No hay proyectos en progreso todavía.</p>`;
+        return;
+    }
+
+    const items = data.items.slice(0, PREVIEW_COUNT_PROJECTS);
+
+    grid.innerHTML = items.map(item => {
+        const techHtml = (item.technologies || [])
+            .map(t => `<span class="tech-chip">${escapeHtml(t)}</span>`)
+            .join("");
+
+        return `
+            <article class="project-card" role="listitem">
+                <span class="category-tag">${escapeHtml(item.status)}</span>
+                <h3>${escapeHtml(item.title)}</h3>
+                <p class="description">${escapeHtml(item.description)}</p>
+                ${techHtml ? `<div class="meta">${techHtml}</div>` : ""}
+            </article>
+        `;
+    }).join("");
+}
+
+// ================================================================
+// 10. RENDERIZADO DE APRENDIZAJE (vitrina)
+// ================================================================
+function renderLearningPreview(data) {
+    if (!data) return;
+
+    const grid = document.getElementById("learningPreview");
+
+    if (!data.blocks || data.blocks.length === 0) {
+        grid.innerHTML = `<p class="placeholder-box">🚧 Próximamente.</p>`;
+        return;
+    }
+
+    const blocks = data.blocks.slice(0, PREVIEW_COUNT_LEARNING);
+
+    grid.innerHTML = blocks.map(block => {
+        let body = "";
+
+        if (block.type === "list") {
+            body = `<ul class="learning-list">${(block.items || [])
+                .map(i => `<li>${escapeHtml(i)}</li>`)
+                .join("")}</ul>`;
+        } else if (block.type === "text") {
+            const items = (block.items || []).slice(0, 2).map(item => `
+                <div class="learning-item">
+                    <strong>${escapeHtml(item.name)}:</strong>
+                    <span>${escapeHtml(item.reason)}</span>
+                </div>
+            `).join("");
+            body = `${block.content ? `<p>${escapeHtml(block.content)}</p>` : ""}${items}`;
+        }
+
+        return `
+            <div class="learning-block">
+                <h3>${escapeHtml(block.title)}</h3>
+                ${body}
+            </div>
+        `;
+    }).join("");
+}
+
+// ================================================================
+// 11. CHAT FLOTANTE
 // ================================================================
 
 const Chat = {
-    // Estado
     conversationId: null,
-    messages: [],       // [{role: 'user'|'bot', text: '...', timestamp: '...'}]
+    messages: [],
     isOpen: false,
-    isWaiting: false,   // true mientras esperamos respuesta del Worker
+    isWaiting: false,
     pollTimer: null,
     pollStartTime: null,
     knownMessageCount: 0,
-
-    // Elementos del DOM
     els: {},
 
-    /**
-     * Inicializa el chat.
-     */
     init() {
-        // Cachear elementos
         this.els = {
             bubble: document.getElementById("chatBubble"),
             panel: document.getElementById("chatPanel"),
@@ -203,7 +348,6 @@ const Chat = {
             close: document.getElementById("chatClose")
         };
 
-        // Recuperar o crear conversation_id
         let convId = localStorage.getItem(CHAT_CONV_ID_KEY);
         if (!convId) {
             convId = generateUUID();
@@ -211,17 +355,13 @@ const Chat = {
         }
         this.conversationId = convId;
 
-        // Recuperar historial local
         try {
             const saved = localStorage.getItem(CHAT_STORAGE_KEY);
-            if (saved) {
-                this.messages = JSON.parse(saved);
-            }
+            if (saved) this.messages = JSON.parse(saved);
         } catch (e) {
             this.messages = [];
         }
 
-        // Mensaje de bienvenida si no hay historial
         if (this.messages.length === 0) {
             this.messages.push({
                 role: "bot",
@@ -231,10 +371,8 @@ const Chat = {
             this.saveHistory();
         }
 
-        // Renderizar historial
         this.renderMessages();
 
-        // Bind eventos
         this.els.bubble.addEventListener("click", () => this.toggle());
         this.els.close.addEventListener("click", () => this.close());
         this.els.clear.addEventListener("click", () => this.clear());
@@ -244,12 +382,7 @@ const Chat = {
         });
     },
 
-    /**
-     * Abre/cierra el panel.
-     */
-    toggle() {
-        this.isOpen ? this.close() : this.open();
-    },
+    toggle() { this.isOpen ? this.close() : this.open(); },
 
     open() {
         this.isOpen = true;
@@ -267,42 +400,27 @@ const Chat = {
         this.els.bubble.classList.remove("chat-bubble-hidden");
     },
 
-    /**
-     * Limpia el historial.
-     */
     clear() {
         if (!confirm("¿Seguro que quieres borrar la conversación actual?")) return;
-
         this.messages = [{
             role: "bot",
             text: "Conversación reiniciada. ¿En qué puedo ayudarte?",
             timestamp: new Date().toISOString()
         }];
-
-        // Nuevo conversation_id
         this.conversationId = generateUUID();
         localStorage.setItem(CHAT_CONV_ID_KEY, this.conversationId);
-
         this.saveHistory();
         this.renderMessages();
     },
 
-    /**
-     * Renderiza todos los mensajes.
-     */
     renderMessages() {
         this.els.messages.innerHTML = this.messages.map(m => this.renderMessage(m)).join("");
         this.scrollToBottom();
     },
 
-    /**
-     * Renderiza un mensaje individual.
-     */
     renderMessage(m) {
         const isBot = m.role === "bot";
-        const avatar = isBot
-            ? `<img src="assets/logo_header.png" alt="" class="chat-msg-avatar">`
-            : "";
+        const avatar = isBot ? `<img src="assets/logo_header.png" alt="" class="chat-msg-avatar">` : "";
         const bubbleClass = isBot ? "chat-msg-bot" : "chat-msg-user";
         return `
             <div class="chat-msg ${bubbleClass}">
@@ -312,9 +430,6 @@ const Chat = {
         `;
     },
 
-    /**
-     * Añade un mensaje al historial y lo renderiza.
-     */
     addMessage(role, text) {
         const m = { role, text, timestamp: new Date().toISOString() };
         this.messages.push(m);
@@ -323,9 +438,6 @@ const Chat = {
         this.saveHistory();
     },
 
-    /**
-     * Muestra el indicador de "escribiendo...".
-     */
     showTyping() {
         const typing = `
             <div class="chat-msg chat-msg-bot chat-msg-typing" id="chatTyping">
@@ -344,47 +456,34 @@ const Chat = {
         if (el) el.remove();
     },
 
-    /**
-     * Scroll al final del panel.
-     */
     scrollToBottom() {
         requestAnimationFrame(() => {
             this.els.messages.scrollTop = this.els.messages.scrollHeight;
         });
     },
 
-    /**
-     * Guarda el historial en localStorage.
-     */
     saveHistory() {
         try {
             localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(this.messages));
         } catch (e) {
-            console.warn("No se pudo guardar el historial del chat:", e);
+            console.warn("No se pudo guardar el historial:", e);
         }
     },
 
-    /**
-     * Envía la pregunta al Worker.
-     */
     async send() {
         const text = this.els.input.value.trim();
         if (!text) return;
         if (this.isWaiting) return;
 
-        // Mostrar mensaje del usuario
         this.addMessage("user", text);
         this.els.input.value = "";
 
-        // Estado de espera
         this.isWaiting = true;
         this.els.send.disabled = true;
         this.showTyping();
 
-        // Guardar el número de mensajes conocidos ANTES de enviar
-        this.knownMessageCount = this.messages.length - 1; // -1 porque el último es la pregunta
+        this.knownMessageCount = this.messages.length - 1;
 
-        // Enviar al Worker
         try {
             const response = await fetch(WORKER_URL, {
                 method: "POST",
@@ -397,32 +496,21 @@ const Chat = {
                 })
             });
 
-            if (!response.ok) {
-                throw new Error(`Worker respondió ${response.status}`);
-            }
-
-            // Empezar polling al Gist
+            if (!response.ok) throw new Error(`Worker respondió ${response.status}`);
             this.startPolling();
 
         } catch (err) {
             console.error("Error enviando al Worker:", err);
             this.hideTyping();
-            this.addMessage("bot", "No pude enviar tu pregunta. ¿Está el asistente disponible? Intenta de nuevo en un momento.");
+            this.addMessage("bot", "No pude enviar tu pregunta. Puede que tu red bloquee la conexión al asistente. Intenta de nuevo en un momento.");
             this.finishWaiting();
         }
     },
 
-    /**
-     * Empieza a hacer polling al Gist para buscar la respuesta.
-     */
     startPolling() {
         this.pollStartTime = Date.now();
-        let attempts = 0;
 
         const poll = async () => {
-            attempts++;
-
-            // Timeout
             if (Date.now() - this.pollStartTime > CHAT_TIMEOUT_MS) {
                 this.stopPolling();
                 this.hideTyping();
@@ -440,12 +528,8 @@ const Chat = {
 
                 if (conv && Array.isArray(conv.messages)) {
                     const totalMessages = conv.messages.length;
-
-                    // Si hay más mensajes que los que conocíamos, ha llegado la respuesta
                     if (totalMessages > this.knownMessageCount) {
                         const lastMessage = conv.messages[totalMessages - 1];
-
-                        // Verificar que es la respuesta a nuestra pregunta (por seguridad)
                         if (lastMessage.question === this.lastQuestion()) {
                             this.stopPolling();
                             this.hideTyping();
@@ -456,12 +540,10 @@ const Chat = {
                     }
                 }
 
-                // Si aún no ha llegado, seguir haciendo polling
                 this.pollTimer = setTimeout(poll, CHAT_POLL_INTERVAL);
 
             } catch (err) {
                 console.warn("Error en polling:", err);
-                // Sigue intentando hasta el timeout
                 this.pollTimer = setTimeout(poll, CHAT_POLL_INTERVAL);
             }
         };
@@ -469,9 +551,6 @@ const Chat = {
         poll();
     },
 
-    /**
-     * Devuelve la última pregunta del usuario (la que acabamos de enviar).
-     */
     lastQuestion() {
         for (let i = this.messages.length - 1; i >= 0; i--) {
             if (this.messages[i].role === "user") return this.messages[i].text;
@@ -479,9 +558,6 @@ const Chat = {
         return "";
     },
 
-    /**
-     * Detiene el polling.
-     */
     stopPolling() {
         if (this.pollTimer) {
             clearTimeout(this.pollTimer);
@@ -489,9 +565,6 @@ const Chat = {
         }
     },
 
-    /**
-     * Termina el estado de espera.
-     */
     finishWaiting() {
         this.isWaiting = false;
         this.els.send.disabled = false;
@@ -500,29 +573,43 @@ const Chat = {
 };
 
 // ================================================================
-// 8. INICIALIZACIÓN
+// 12. INICIALIZACIÓN
 // ================================================================
 async function init() {
     initTheme();
-
     document.getElementById("year").textContent = new Date().getFullYear();
-
-    // Inicializar chat
     Chat.init();
 
-    // Cargar catálogo y descargas en paralelo
-    const [catalog, downloads] = await Promise.all([
+    const [
+        catalog,
+        downloads,
+        challenges,
+        opensource,
+        blog,
+        inProgress,
+        learning
+    ] = await Promise.all([
         loadCatalog(),
-        loadDownloads()
+        loadDownloads(),
+        loadJson(CONTENT_CHALLENGES),
+        loadJson(CONTENT_OPENSOURCE),
+        loadJson(CONTENT_BLOG),
+        loadJson(CONTENT_PROJECTS),
+        loadJson(CONTENT_LEARNING)
     ]);
 
     if (!catalog) {
         document.getElementById("projectsGrid").innerHTML =
             `<p class="error-message">⚠️ No se pudieron cargar los proyectos. Intenta recargar la página.</p>`;
-        return;
+    } else {
+        renderProjects(catalog.apps || [], downloads);
     }
 
-    renderProjects(catalog.apps || [], downloads);
+    renderChallengesPreview(challenges);
+    renderOpensourcePreview(opensource);
+    renderBlogPreview(blog);
+    renderInProgressPreview(inProgress);
+    renderLearningPreview(learning);
 }
 
 document.addEventListener("DOMContentLoaded", init);

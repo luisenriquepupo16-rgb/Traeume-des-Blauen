@@ -1,0 +1,60 @@
+{
+  "version": 2,
+  "section": "blog",
+  "title": "Blog / Notas",
+  "intro": "Notas técnicas sobre el proceso de construcción de mis proyectos. Sin pretensiones de tutorial, solo documentación honesta de lo que he hecho y aprendido.",
+  "see_all_url": "blog/index.html",
+  "see_all_label": "Ver todas las entradas",
+  "posts": [
+    {
+      "id": "descargas-background",
+      "title": "Cómo resolví el problema de las descargas en background en Android",
+      "url": "blog/descargas-background.html",
+      "date": "2026-10-11",
+      "date_label": "Octubre 2026",
+      "category": "Desarrollo Android",
+      "excerpt": "El problema: cuando el usuario salía de la app, la descarga se interrumpía. La solución: Foreground Service con notificación persistente. El aprendizaje: las tareas largas no deben depender del ciclo de vida de la UI.",
+      "featured": true
+    },
+    {
+      "id": "catalogo-json",
+      "title": "Cómo estructuré el catálogo de apps con un JSON generado automáticamente",
+      "url": "blog/catalogo-json.html",
+      "date": "2026-10-11",
+      "date_label": "Octubre 2026",
+      "category": "Automatización",
+      "excerpt": "El problema: mantener un catálogo actualizado a mano era tedioso. La solución: un workflow de GitHub Actions que genera un catalog.json desde la estructura de carpetas. El aprendizaje: separar contenido de presentación.",
+      "featured": true
+    },
+    {
+      "id": "portafolio-sin-romper-app",
+      "title": "Cómo convertí la web del catálogo en un portafolio sin romper la app",
+      "url": "blog/portafolio-sin-romper-app.html",
+      "date": "2026-10-11",
+      "date_label": "Octubre 2026",
+      "category": "Arquitectura web",
+      "excerpt": "El problema: la web ya no se usaba, pero la app dependía de catalog.json. La solución: mantener el JSON intacto y reescribir solo la presentación. El aprendizaje: separar datos de interfaz es clave para escalar.",
+      "featured": true
+    },
+    {
+      "id": "automatizacion-ecosistema",
+      "title": "Cómo automaticé mi ecosistema de desarrollo con GitHub Actions y Discord",
+      "url": "blog/automatizacion-ecosistema.html",
+      "date": "2026-10-14",
+      "date_label": "Octubre 2026",
+      "category": "Automatización",
+      "excerpt": "Cómo construí un ecosistema completo de workflows que automatizan tareas de desarrollo, monitoreo y comunicación. GitHub Actions, Discord, Gists, todo integrado en un solo repositorio.",
+      "featured": true
+    },
+    {
+      "id": "monitor-empleo",
+      "title": "Cómo construí un monitor de empleo remoto con Python, Telegram y Discord",
+      "url": "blog/monitor-empleo.html",
+      "date": "2026-10-14",
+      "date_label": "Octubre 2026",
+      "category": "Automatización",
+      "excerpt": "Cómo construir un monitor que busca ofertas de empleo remoto en Remotive y Telegram, las filtra por relevancia, y las envía a Discord sin repetir las ya vistas.",
+      "featured": false
+    }
+  ]
+}
