@@ -1,0 +1,30 @@
+name: Workflow Failure Alert
+
+on:
+  workflow_run:
+    workflows: ["Gemini Chat", "Telegram Jobs Monitor", "Remotive Jobs Monitor", "Download Notifier"]
+    types: [completed]
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+      - name: Notificar fallo a Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          MSG="❌ **Workflow fallido:** ${WORKFLOW_NAME}\n"
+          MSG="${MSG}Estado: ${CONCLUSION}\n"
+          MSG="${MSG}[Ver detalles](${RUN_URL})"
+          
+          PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')
+          curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$DISCORD_WEBHOOK"
+          
+          echo "Alerta enviada a Discord."

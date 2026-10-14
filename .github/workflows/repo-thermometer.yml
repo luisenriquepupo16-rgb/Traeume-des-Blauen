@@ -1,0 +1,97 @@
+name: Repo Thermometer
+
+on:
+  schedule:
+    - cron: '0 22 * * 0'
+  workflow_dispatch:
+
+jobs:
+  thermometer:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+
+    steps:
+      - name: Calcular termómetro
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -e
+
+          REPOS=(
+            "Traeume-des-Blauen"
+            "nexiria"
+            "yozora-store-android"
+            "Dibujama_Android"
+            "dibujama"
+            "converty"
+            "baby-medina-android"
+          )
+
+          SINCE=$(date -u -d "7 days ago" +"%Y-%m-%dT%H:%M:%SZ")
+
+          TOTAL_COMMITS=0
+          TOTAL_RELEASES=0
+          TOTAL_ISSUES=0
+          REPOS_ACTIVOS=0
+          DETALLE=""
+
+          for REPO in "${REPOS[@]}"; do
+            COMMITS=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$OWNER/$REPO/commits?since=$SINCE&per_page=100" \
+              | jq 'length' 2>/dev/null || echo "0")
+
+            RELEASES=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$OWNER/$REPO/releases?per_page=20" \
+              | jq --arg since "$SINCE" '[.[] | select(.published_at > $since)] | length' 2>/dev/null || echo "0")
+
+            ISSUES=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$OWNER/$REPO/issues?state=all&since=$SINCE&per_page=50" \
+              | jq --arg since "$SINCE" '[.[] | select(.created_at > $since)] | length' 2>/dev/null || echo "0")
+
+            TOTAL_COMMITS=$((TOTAL_COMMITS + COMMITS))
+            TOTAL_RELEASES=$((TOTAL_RELEASES + RELEASES))
+            TOTAL_ISSUES=$((TOTAL_ISSUES + ISSUES))
+
+            if [ "$COMMITS" -gt 0 ] || [ "$RELEASES" -gt 0 ] || [ "$ISSUES" -gt 0 ]; then
+              REPOS_ACTIVOS=$((REPOS_ACTIVOS + 1))
+              DETALLE="${DETALLE}\n• ${REPO}: ${COMMITS} commits, ${RELEASES} releases, ${ISSUES} issues"
+            fi
+          done
+
+          TOTAL=$((TOTAL_COMMITS + TOTAL_RELEASES * 3 + TOTAL_ISSUES * 2))
+
+          if [ "$TOTAL" -ge 30 ]; then
+            EMOJI="🔥"
+            ESTADO="Semana muy movida"
+          elif [ "$TOTAL" -ge 10 ]; then
+            EMOJI="🌤️"
+            ESTADO="Semana normal"
+          elif [ "$TOTAL" -gt 0 ]; then
+            EMOJI="🌱"
+            ESTADO="Semana tranquila"
+          else
+            EMOJI="❄️"
+            ESTADO="Semana muerta"
+          fi
+
+          TODAY=$(date -u +"%Y-%m-%d")
+
+          MSG="${EMOJI} Termometro semanal (${TODAY}):\n"
+          MSG="${MSG}Estado: ${ESTADO}\n"
+          MSG="${MSG}• Commits: ${TOTAL_COMMITS}\n"
+          MSG="${MSG}• Releases: ${TOTAL_RELEASES}\n"
+          MSG="${MSG}• Issues: ${TOTAL_ISSUES}\n"
+          MSG="${MSG}• Repos con actividad: ${REPOS_ACTIVOS}/${#REPOS[@]}"
+
+          if [ -n "$DETALLE" ]; then
+            MSG="${MSG}\n${DETALLE}"
+          fi
+
+          PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')
+          curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$DISCORD_WEBHOOK"
+
+          echo "Termometro enviado."

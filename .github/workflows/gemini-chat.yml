@@ -17,6 +17,11 @@ on:
         required: false
         default: 'discord'
         type: string
+      conversation_id:
+        description: 'ID de la conversación'
+        required: false
+        default: 'default'
+        type: string
 
 jobs:
   chat:
@@ -40,4 +45,5 @@ jobs:
           QUESTION: ${{ github.event.inputs.question }}
           SOURCE: ${{ github.event.inputs.source }}
           RESPONSE_TARGET: ${{ github.event.inputs.response_target }}
+          CONVERSATION_ID: ${{ github.event.inputs.conversation_id }}
         run: python scripts/gemini_chat.py
