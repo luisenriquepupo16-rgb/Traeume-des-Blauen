@@ -1,0 +1,5458 @@
+ESTRUCTURA DEL PROYECTO: D:\Blue_Dragon\Kin\Traeume-des-Blauen
+==============================================================
+
+.
+├── .github
+│   └── workflows
+│       ├── dev-diary.yml
+│       ├── download-notifier.yml
+│       ├── gemini-chat.yml
+│       ├── issue-responder.yml
+│       ├── release-and-catalog.yml
+│       ├── remotive-jobs.yml
+│       ├── repo-thermometer.yml
+│       ├── telegram-jobs.yml
+│       ├── test-chatbot.yml
+│       ├── version-checker.yml
+│       └── workflow-failure-alert.yml
+├── .gitignore
+├── Pendings
+│   ├── generar_sesion.py
+│   ├── gh_telegram_secrets.txt
+│   └── telegram_api_secrets.txt
+├── README.md
+├── apps
+│   ├── converty
+│   │   ├── converty_v1.2.0.apk
+│   │   ├── icon.png
+│   │   └── info.md
+│   ├── dibujama
+│   │   ├── dibujama_v1.1.0.apk
+│   │   ├── icon.png
+│   │   └── info.md
+│   ├── magic_world
+│   │   ├── icon.png
+│   │   ├── info.md
+│   │   └── magic_world_v2.1.10.apk
+│   ├── mipy_caja
+│   │   ├── icon.png
+│   │   ├── info.md
+│   │   └── mipy_caja_v2.2.21.apk
+│   └── traeume_des_blauen
+│       ├── icon.png
+│       ├── info.md
+│       └── traeume_des_blauen_v1.1.1.apk
+├── docs
+│   ├── app.js
+│   ├── assets
+│   │   ├── favicon.png
+│   │   ├── logo_grande.png
+│   │   ├── logo_header.png
+│   │   └── og_image.png
+│   ├── blog
+│   │   ├── blog.css
+│   │   ├── catalogo-json.html
+│   │   ├── descargas-background.html
+│   │   ├── index.html
+│   │   └── portafolio-sin-romper-app.html
+│   ├── catalog.json
+│   ├── index.html
+│   └── style.css
+├── genoma.py
+├── pull.ps1
+├── push.ps1
+└── scripts
+    ├── Generate-Catalog.ps1
+    ├── gemini_chat.py
+    ├── remotive_jobs.py
+    └── telegram_jobs.py
+
+
+==================================================
+CONTENIDO DE LOS ARCHIVOS
+==================================================
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\.github\workflows\dev-diary.yml
+====================
+name: Dev Diary
+
+on:
+  schedule:
+    - cron: '0 23 * * *'   # 23:00 UTC = 6 PM Cuba
+  workflow_dispatch:
+
+jobs:
+  daily-diary:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+
+    steps:
+      - name: Recopilar actividad del día
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -e
+
+          # Repositorios a revisar (edita esta lista si quieres)
+          REPOS=(
+            "Traeume-des-Blauen"
+            "nexiria"
+            "yozora-store-android"
+            "Dibujama_Android"
+            "dibujama"
+            "converty"
+            "baby-medina-android"
+          )
+
+          TODAY=$(date -u +"%Y-%m-%d")
+          SINCE=$(date -u -d "24 hours ago" +"%Y-%m-%dT%H:%M:%SZ")
+
+          TOTAL_COMMITS=0
+          REPOS_ACTIVOS=""
+          RELEASES_HOY=0
+          ISSUES_NUEVOS=0
+
+          for REPO in "${REPOS[@]}"; do
+            # Commits de las últimas 24h
+            COMMITS=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$OWNER/$REPO/commits?since=$SINCE&per_page=100" \
+              | jq 'length' 2>/dev/null || echo "0")
+
+            if [ "$COMMITS" -gt 0 ] 2>/dev/null; then
+              TOTAL_COMMITS=$((TOTAL_COMMITS + COMMITS))
+              REPOS_ACTIVOS="${REPOS_ACTIVOS}\n• \`${REPO}\`: ${COMMITS} commit(s)"
+            fi
+
+            # Releases publicados hoy
+            RELEASES=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$OWNER/$REPO/releases?per_page=10" \
+              | jq --arg since "$SINCE" '[.[] | select(.published_at > $since)] | length' 2>/dev/null || echo "0")
+            RELEASES_HOY=$((RELEASES_HOY + RELEASES))
+
+            # Issues abiertos hoy
+            ISSUES=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$OWNER/$REPO/issues?state=open&since=$SINCE&per_page=50" \
+              | jq --arg since "$SINCE" '[.[] | select(.created_at > $since)] | length' 2>/dev/null || echo "0")
+            ISSUES_NUEVOS=$((ISSUES_NUEVOS + ISSUES))
+          done
+
+          # Construir mensaje
+          if [ "$TOTAL_COMMITS" -gt 0 ] || [ "$RELEASES_HOY" -gt 0 ] || [ "$ISSUES_NUEVOS" -gt 0 ]; then
+            MSG="📓 **Diario del desarrollador — ${TODAY}**\n"
+            MSG="${MSG}• **${TOTAL_COMMITS}** commit(s) en total"
+            if [ -n "$REPOS_ACTIVOS" ]; then
+              MSG="${MSG}\n• Repos con actividad:${REPOS_ACTIVOS}"
+            fi
+            if [ "$RELEASES_HOY" -gt 0 ]; then
+              MSG="${MSG}\n• **${RELEASES_HOY}** release(s) publicado(s)"
+            fi
+            if [ "$ISSUES_NUEVOS" -gt 0 ]; then
+              MSG="${MSG}\n• **${ISSUES_NUEVOS}** issue(s) nuevo(s)"
+            fi
+            MSG="${MSG}\n\nMañana más. 💙"
+          else
+            COMENTARIOS=(
+              "Hoy no hubo movimiento. Supongo que descansaste. Bien por ti. 💙"
+              "Día tranquilo. A veces hace falta. 💙"
+              "Nada por aquí. El silencio también cuenta. 💙"
+              "Sin actividad hoy. Mañana será otro día. 💙"
+            )
+            RANDOM_INDEX=$((RANDOM % ${#COMENTARIOS[@]}))
+            MSG="📓 **Diario del desarrollador — ${TODAY}**\n\n${COMENTARIOS[$RANDOM_INDEX]}"
+          fi
+
+          PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')
+          curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$DISCORD_WEBHOOK"
+          echo "Diario enviado."
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\.github\workflows\download-notifier.yml
+====================
+name: Download Notifier
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  check-downloads:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Consultar descargas y notificar a Discord
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -e
+
+          NOW_DATE=$(date -u +"%Y-%m-%d")
+          NOW_HOUR=$(date -u +"%H")
+          echo "Fecha actual: $NOW_DATE, hora: $NOW_HOUR"
+
+          # 1. Obtener releases
+          RELEASES=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/$REPO/releases?per_page=100")
+
+          # 2. Construir {app: count} sumando solo APKs, agrupado por app
+          CURRENT=$(echo "$RELEASES" | jq -c '
+            [.[] | . as $release |
+              .assets[] |
+              select(.name | endswith(".apk")) |
+              {
+                app: ($release.tag_name | sub("_v[0-9.]+$"; "")),
+                count: .download_count
+              }
+            ] | group_by(.app) | map({
+              key: .[0].app,
+              value: (map(.count) | add)
+            }) | from_entries
+          ')
+
+          echo "Conteo actual: $CURRENT"
+
+          # 3. Leer Gist anterior
+          GIST_CONTENT=$(curl -s -H "Authorization: Bearer $GIST_TOKEN" \
+            "https://api.github.com/gists/$GIST_ID" \
+            | jq -r '.files["downloads.json"].content // "{\"current\":{},\"daily\":{}}"')
+
+          echo "Gist anterior: $GIST_CONTENT"
+
+          PREVIOUS=$(echo "$GIST_CONTENT" | jq -c '.current // {}')
+          DAILY=$(echo "$GIST_CONTENT" | jq -c '.daily // {}')
+
+          # 4. Comparar y construir mensajes + deltas del día
+          MESSAGES=""
+          TODAY_DELTAS="{}"
+          APPS=$(echo "$CURRENT" | jq -r 'keys[]')
+
+          for APP in $APPS; do
+            OLD=$(echo "$PREVIOUS" | jq -r --arg a "$APP" '.[$a] // 0')
+            NEW=$(echo "$CURRENT"  | jq -r --arg a "$APP" '.[$a] // 0')
+            DIFF=$((NEW - OLD))
+
+            if [ "$DIFF" -gt 0 ]; then
+              MESSAGES="${MESSAGES}${APP}: ${DIFF} nueva(s) descarga(s)\n"
+
+              TODAY_DELTAS=$(echo "$TODAY_DELTAS" | jq -c \
+                --arg a "$APP" --argjson d "$DIFF" \
+                '.[$a] = ((.[$a] // 0) + $d)')
+            fi
+          done
+
+          # 5. Enviar notificación de descargas nuevas (solo si hay)
+          if [ -n "$MESSAGES" ]; then
+            echo "Enviando notificación de descargas nuevas..."
+            MSG="Nuevas descargas detectadas:\n${MESSAGES}"
+            PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')
+            curl -s -X POST \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD" \
+              "$DISCORD_WEBHOOK"
+            echo "Notificado."
+          else
+            echo "Sin novedades."
+          fi
+
+          # 6. Actualizar daily con los deltas de hoy
+          UPDATED_DAILY=$(jq -n \
+            --argjson daily "$DAILY" \
+            --arg date "$NOW_DATE" \
+            --argjson today "$TODAY_DELTAS" \
+            '
+            $daily as $d |
+            ($d[$date] // {}) as $existing |
+            $d + { ($date): (
+              ($existing | keys) + ($today | keys) | unique |
+              map({ key: ., value: (($existing[.] // 0) + ($today[.] // 0)) }) |
+              from_entries
+            )}
+            ')
+
+          # 7. Construir nuevo Gist
+          NEW_GIST=$(jq -n \
+            --argjson current "$CURRENT" \
+            --argjson daily "$UPDATED_DAILY" \
+            '{ current: $current, daily: $daily }')
+
+          GIST_BODY=$(jq -n --arg content "$NEW_GIST" '{
+            files: { "downloads.json": { content: $content } }
+          }')
+          curl -s -X PATCH \
+            -H "Authorization: Bearer $GIST_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$GIST_BODY" \
+            "https://api.github.com/gists/$GIST_ID" > /dev/null
+
+          echo "Gist actualizado."
+
+          # 8. Resumen de medianoche (solo si es la hora 0)
+          if [ "$NOW_HOUR" = "00" ]; then
+            echo "Hora de resumen diario..."
+
+            DAY_TOTALS=$(echo "$UPDATED_DAILY" | jq -c --arg d "$NOW_DATE" '.[$d] // {}')
+
+            if [ "$DAY_TOTALS" != "{}" ] && [ "$(echo "$DAY_TOTALS" | jq 'length')" -gt 0 ]; then
+              SUMMARY="Resumen del dia ${NOW_DATE}:\n"
+              for APP in $(echo "$DAY_TOTALS" | jq -r 'keys[]'); do
+                COUNT=$(echo "$DAY_TOTALS" | jq -r --arg a "$APP" '.[$a]')
+                SUMMARY="${SUMMARY}${APP}: ${COUNT} descarga(s)\n"
+              done
+
+              PAYLOAD=$(jq -n --arg content "$SUMMARY" '{content: $content}')
+              curl -s -X POST \
+                -H "Content-Type: application/json" \
+                -d "$PAYLOAD" \
+                "$DISCORD_WEBHOOK"
+              echo "Resumen diario enviado."
+            else
+              echo "Sin descargas hoy. No se envia resumen."
+            fi
+          fi
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\.github\workflows\gemini-chat.yml
+====================
+name: Gemini Chat
+
+on:
+  workflow_dispatch:
+    inputs:
+      question:
+        description: 'Pregunta del usuario'
+        required: true
+        type: string
+      source:
+        description: 'Origen: app, web, discord'
+        required: false
+        default: 'web'
+        type: string
+      response_target:
+        description: 'Dónde responder: discord, gist'
+        required: false
+        default: 'discord'
+        type: string
+      conversation_id:
+        description: 'ID de la conversación'
+        required: false
+        default: 'default'
+        type: string
+
+jobs:
+  chat:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Instalar dependencias
+        run: pip install requests
+
+      - name: Procesar pregunta con Gemini
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+          QUESTION: ${{ github.event.inputs.question }}
+          SOURCE: ${{ github.event.inputs.source }}
+          RESPONSE_TARGET: ${{ github.event.inputs.response_target }}
+          CONVERSATION_ID: ${{ github.event.inputs.conversation_id }}
+        run: python scripts/gemini_chat.py
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\.github\workflows\issue-responder.yml
+====================
+name: Issue Responder
+
+on:
+  issues:
+    types: [opened]
+  schedule:
+    - cron: '30 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  responder:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Etiquetar y responder issue nuevo
+        if: github.event_name == 'issues'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const title = issue.title.toLowerCase();
+            const body = (issue.body || '').toLowerCase();
+            const text = title + ' ' + body;
+
+            let label = '';
+            let message = '';
+
+            if (text.match(/\b(bug|error|falla|fallo|no funciona|crash|se cierra)\b/)) {
+              label = 'bug';
+              message = `¡Qué sucede! 👋 Gracias por reportar.\n\nPara poder ayudarte bien, necesito algunos datos:\n• Modelo de teléfono\n• Versión de Android\n• Versión de la app\n• Qué pasos seguiste hasta que falló\n\nEn cuanto me lo digas, le echo un ojo. 💙`;
+            } else if (text.match(/\b(sugerencia|idea|me gustaría|podría|sería bueno|feature|añadir)\b/)) {
+              label = 'sugerencia';
+              message = `¡Qué sucede! 👋 Gracias por la idea.\n\nCuéntame un poco más: ¿qué te gustaría ver y para qué lo usarías? Así puedo valorarlo mejor. 💙`;
+            } else if (text.match(/\b(encargo|forja|presupuesto|contratar|personalizada|a medida)\b/)) {
+              label = 'encargo';
+              message = `¡Qué sucede! 👋 Gracias por el interés.\n\nPara encargar una app personalizada, necesito:\n• Descripción de lo que quieres\n• Presupuesto aproximado\n• Plazo que manejas\n\nLo mejor es que me escribas por WhatsApp y lo hablamos con calma. 💙`;
+            } else {
+              label = 'triage';
+              message = `¡Qué sucede! 👋 Gracias por escribir.\n\nHe recibido tu issue y lo revisaré en cuanto pueda. Si me das algún detalle más, mejor. 💙`;
+            }
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              labels: [label]
+            });
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: message
+            });
+
+            console.log(`Issue #${issue.number} etiquetado como "${label}" y respondido.`);
+
+      - name: Notificar a Discord sobre issue nuevo
+        if: github.event_name == 'issues'
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          ISSUE_NUM="${{ github.event.issue.number }}"
+          ISSUE_TITLE="${{ github.event.issue.title }}"
+          ISSUE_AUTHOR="${{ github.event.issue.user.login }}"
+          ISSUE_URL="${{ github.event.issue.html_url }}"
+          ISSUE_BODY="${{ github.event.issue.body }}"
+
+          # Acortar el cuerpo si es muy largo
+          BODY_PREVIEW=$(echo "$ISSUE_BODY" | head -c 200)
+          if [ ${#ISSUE_BODY} -gt 200 ]; then
+            BODY_PREVIEW="${BODY_PREVIEW}..."
+          fi
+
+          MSG="🐛 **Nuevo issue #${ISSUE_NUM}**\n"
+          MSG="${MSG}• **Título:** ${ISSUE_TITLE}\n"
+          MSG="${MSG}• **Autor:** @${ISSUE_AUTHOR}\n"
+          if [ -n "$ISSUE_BODY" ]; then
+            MSG="${MSG}• **Descripción:** ${BODY_PREVIEW}\n"
+          fi
+          MSG="${MSG}\n[Ver issue](${ISSUE_URL})"
+
+          PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')
+          curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$DISCORD_WEBHOOK"
+          echo "Notificado a Discord."
+
+      - name: Cerrar issues inactivos
+        if: github.event_name == 'schedule'
+        uses: actions/stale@v9
+        with:
+          days-before-issue-stale: 30
+          days-before-issue-close: 14
+          stale-issue-label: 'stale'
+          stale-issue-message: 'Oye, este issue lleva mucho sin moverse. Si ya no es relevante, lo cierro en 14 días. Si sigue vivo, avísame. 💙'
+          close-issue-message: 'Lo cierro por inactividad. Si vuelve a ser relevante, reábrelo o crea uno nuevo. 💙'
+          days-before-pr-stale: -1
+          days-before-pr-close: -1
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\.github\workflows\release-and-catalog.yml
+====================
+name: Release Apps and Build Catalog
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**'
+  workflow_dispatch:
+
+jobs:
+  release-apps:
+    name: Create/Update GitHub Releases
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    outputs:
+      changed_apps: ${{ steps.detect.outputs.changed_apps }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Install powershell-yaml
+        shell: pwsh
+        run: Install-Module -Name powershell-yaml -Scope CurrentUser -Force
+
+      - name: Detect changed apps
+        id: detect
+        shell: pwsh
+        run: |
+          # Obtener archivos cambiados en el último commit
+          $changed = git diff --name-only HEAD~1 HEAD
+          $appIds = @()
+          foreach ($file in $changed) {
+            if ($file -match '^apps/([^/]+)/') {
+              $appIds += $Matches[1]
+            }
+          }
+          $appIds = $appIds | Sort-Object -Unique
+          Write-Host "Apps cambiadas: $($appIds -join ', ')"
+          $json = $appIds | ConvertTo-Json -Compress
+          if ($appIds.Count -eq 0) { $json = '[]' }
+          "changed_apps=$json" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Create releases for changed apps
+        if: steps.detect.outputs.changed_apps != '[]'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $appIds = '${{ steps.detect.outputs.changed_apps }}' | ConvertFrom-Json
+          foreach ($appId in $appIds) {
+            Write-Host "`n=== Procesando $appId ===" -ForegroundColor Cyan
+
+            $appDir = "apps/$appId"
+            $infoPath = "$appDir/info.md"
+            if (-not (Test-Path $infoPath)) {
+              Write-Warning "No hay info.md en $appDir"
+              continue
+            }
+
+            # Leer frontmatter para obtener la version
+            $bytes = [System.IO.File]::ReadAllBytes($infoPath)
+            $content = [System.Text.Encoding]::UTF8.GetString($bytes)
+            if ($content -notmatch '(?s)^\s*---\s*\r?\n(.*?)\r?\n---\s*\r?\n(.*)$') {
+              Write-Warning "Frontmatter invalido en $infoPath"
+              continue
+            }
+            $meta = ConvertFrom-Yaml $Matches[1]
+            $version = $meta.version
+            $appName = $meta.name
+
+            $tag = "${appId}_v$version"
+            Write-Host "Tag: $tag"
+
+            # Buscar APK
+            $apk = Get-ChildItem -Path $appDir -Filter "*.apk" | Select-Object -First 1
+            if (-not $apk) {
+              Write-Warning "No hay APK en $appDir"
+              continue
+            }
+
+            # Ver si el release ya existe
+            $existing = gh release view $tag 2>$null
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "Release $tag ya existe. Eliminando para recrear..." -ForegroundColor Yellow
+              gh release delete $tag --yes --cleanup-tag
+            }
+
+            # Crear release y subir assets
+            Write-Host "Creando release $tag..."
+            $releaseArgs = @(
+              "release", "create", $tag,
+              "--title", "$appName $version",
+              "--notes", "Release automatico de $appName version $version",
+              "--latest"
+            )
+
+            # Assets: APK + icono si existe
+            $assets = @($apk.FullName)
+            $iconPath = "$appDir/icon.png"
+            if (Test-Path $iconPath) {
+              $assets += (Resolve-Path $iconPath).Path
+            }
+
+            gh @releaseArgs @assets
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "Fallo al crear el release $tag"
+            }
+
+            Write-Host "Release $tag creado con $($assets.Count) assets." -ForegroundColor Green
+          }
+
+  build-catalog:
+    name: Regenerate catalog.json
+    needs: release-apps
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Install powershell-yaml
+        shell: pwsh
+        run: Install-Module -Name powershell-yaml -Scope CurrentUser -Force
+
+      - name: Generate catalog.json
+        shell: pwsh
+        run: ./scripts/Generate-Catalog.ps1
+
+      - name: Commit catalog.json if changed
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/catalog.json -f
+          if (git diff --cached --quiet) {
+            Write-Host "Sin cambios en catalog.json"
+          } else {
+            git commit -m "chore: regenerate catalog.json [skip ci]"
+            git push
+          }
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\.github\workflows\remotive-jobs.yml
+====================
+name: Remotive Jobs Monitor
+
+on:
+  schedule:
+    - cron: '0 15 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-jobs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install requests
+
+      - name: Ejecutar monitor
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+        run: python scripts/remotive_jobs.py
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\.github\workflows\repo-thermometer.yml
+====================
+name: Repo Thermometer
+
+on:
+  schedule:
+    - cron: '0 22 * * 0'
+  workflow_dispatch:
+
+jobs:
+  thermometer:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+
+    steps:
+      - name: Calcular termómetro
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -e
+
+          REPOS=(
+            "Traeume-des-Blauen"
+            "nexiria"
+            "yozora-store-android"
+            "Dibujama_Android"
+            "dibujama"
+            "converty"
+            "baby-medina-android"
+          )
+
+          SINCE=$(date -u -d "7 days ago" +"%Y-%m-%dT%H:%M:%SZ")
+
+          TOTAL_COMMITS=0
+          TOTAL_RELEASES=0
+          TOTAL_ISSUES=0
+          REPOS_ACTIVOS=0
+          DETALLE=""
+
+          for REPO in "${REPOS[@]}"; do
+            COMMITS=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$OWNER/$REPO/commits?since=$SINCE&per_page=100" \
+              | jq 'length' 2>/dev/null || echo "0")
+
+            RELEASES=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$OWNER/$REPO/releases?per_page=20" \
+              | jq --arg since "$SINCE" '[.[] | select(.published_at > $since)] | length' 2>/dev/null || echo "0")
+
+            ISSUES=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$OWNER/$REPO/issues?state=all&since=$SINCE&per_page=50" \
+              | jq --arg since "$SINCE" '[.[] | select(.created_at > $since)] | length' 2>/dev/null || echo "0")
+
+            TOTAL_COMMITS=$((TOTAL_COMMITS + COMMITS))
+            TOTAL_RELEASES=$((TOTAL_RELEASES + RELEASES))
+            TOTAL_ISSUES=$((TOTAL_ISSUES + ISSUES))
+
+            if [ "$COMMITS" -gt 0 ] || [ "$RELEASES" -gt 0 ] || [ "$ISSUES" -gt 0 ]; then
+              REPOS_ACTIVOS=$((REPOS_ACTIVOS + 1))
+              DETALLE="${DETALLE}\n• ${REPO}: ${COMMITS} commits, ${RELEASES} releases, ${ISSUES} issues"
+            fi
+          done
+
+          TOTAL=$((TOTAL_COMMITS + TOTAL_RELEASES * 3 + TOTAL_ISSUES * 2))
+
+          if [ "$TOTAL" -ge 30 ]; then
+            EMOJI="🔥"
+            ESTADO="Semana muy movida"
+          elif [ "$TOTAL" -ge 10 ]; then
+            EMOJI="🌤️"
+            ESTADO="Semana normal"
+          elif [ "$TOTAL" -gt 0 ]; then
+            EMOJI="🌱"
+            ESTADO="Semana tranquila"
+          else
+            EMOJI="❄️"
+            ESTADO="Semana muerta"
+          fi
+
+          TODAY=$(date -u +"%Y-%m-%d")
+
+          MSG="${EMOJI} Termometro semanal (${TODAY}):\n"
+          MSG="${MSG}Estado: ${ESTADO}\n"
+          MSG="${MSG}• Commits: ${TOTAL_COMMITS}\n"
+          MSG="${MSG}• Releases: ${TOTAL_RELEASES}\n"
+          MSG="${MSG}• Issues: ${TOTAL_ISSUES}\n"
+          MSG="${MSG}• Repos con actividad: ${REPOS_ACTIVOS}/${#REPOS[@]}"
+
+          if [ -n "$DETALLE" ]; then
+            MSG="${MSG}\n${DETALLE}"
+          fi
+
+          PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')
+          curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$DISCORD_WEBHOOK"
+
+          echo "Termometro enviado."
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\.github\workflows\telegram-jobs.yml
+====================
+name: Telegram Jobs Monitor
+
+on:
+  schedule:
+    - cron: '0 14 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-jobs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install telethon requests
+
+      - name: Ejecutar monitor
+        env:
+          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+          TELEGRAM_SESSION: ${{ secrets.TELEGRAM_SESSION }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+        run: python scripts/telegram_jobs.py
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\.github\workflows\test-chatbot.yml
+====================
+name: Test Chatbot
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: E1 - Test con Origin inválido (debe dar 403)
+        run: |
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "https://github-dispatch-bridge.blue-land.workers.dev" \
+            -H "Content-Type: application/json" \
+            -H "Origin: https://sitio-malicioso.com" \
+            -d '{"question": "Hola"}')
+          echo "E1 - Origin inválido: HTTP $CODE (esperado: 403)"
+          if [ "$CODE" != "403" ]; then echo "FALLO"; exit 1; fi
+          echo "OK"
+
+      - name: E6 - Test pregunta gigante (debe dar 400)
+        run: |
+          BIG_QUESTION=$(python3 -c "print('a' * 1000)")
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "https://github-dispatch-bridge.blue-land.workers.dev" \
+            -H "Content-Type: application/json" \
+            -H "Origin: https://luisenriquepupo16-rgb.github.io" \
+            -d "{\"question\": \"$BIG_QUESTION\"}")
+          echo "E6 - Pregunta gigante: HTTP $CODE (esperado: 400)"
+          if [ "$CODE" != "400" ]; then echo "FALLO"; exit 1; fi
+          echo "OK"
+
+      - name: E2 - Test rate limiting (11 peticiones)
+        run: |
+          for i in $(seq 1 11); do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+              -X POST "https://github-dispatch-bridge.blue-land.workers.dev" \
+              -H "Content-Type: application/json" \
+              -H "Origin: https://luisenriquepupo16-rgb.github.io" \
+              -d "{\"question\": \"Test $i\"}")
+            echo "E2 - Petición $i: HTTP $CODE"
+          done
+          echo "Si la última dio 429, el rate limiting funciona."
+
+  test-chatbot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: E3 - Memoria de conversación
+        env:
+          GH_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: |
+          echo "Lanzando pregunta 1..."
+          gh workflow run gemini-chat.yml \
+            -f question="¿Qué apps tienes?" \
+            -f source="test" \
+            -f conversation_id="test-memoria"
+          sleep 60
+          echo "Lanzando pregunta 2..."
+          gh workflow run gemini-chat.yml \
+            -f question="¿Cuál es la más nueva?" \
+            -f source="test" \
+            -f conversation_id="test-memoria"
+          echo "Revisa Discord: la respuesta 2 debe recordar la pregunta 1."
+
+      - name: E4 - Filtrado de contenido
+        env:
+          GH_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: |
+          gh workflow run gemini-chat.yml \
+            -f question="¿Qué opinas de la política cubana?" \
+            -f source="test" \
+            -f conversation_id="test-filtro"
+          echo "Revisa Discord: debe rechazar amablemente."
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\.github\workflows\version-checker.yml
+====================
+name: Version Checker
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * *'   # Una vez al día a las 6 AM UTC
+  workflow_dispatch:
+
+jobs:
+  check-versions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Comparar versiones con releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -e
+
+          MESSAGES=""
+
+          for APP_DIR in apps/*/; do
+            APP_ID=$(basename "$APP_DIR")
+            INFO_PATH="${APP_DIR}info.md"
+
+            if [ ! -f "$INFO_PATH" ]; then
+              continue
+            fi
+
+            # Extraer versión del frontmatter
+            VERSION=$(grep -m1 '^version:' "$INFO_PATH" | sed 's/version:\s*//' | tr -d '"' | tr -d "'" | xargs)
+
+            if [ -z "$VERSION" ]; then
+              MESSAGES="${MESSAGES}⚠️ **${APP_ID}**: no se pudo leer la versión del info.md\n"
+              continue
+            fi
+
+            # Buscar último release de esta app
+            TAG="${APP_ID}_v${VERSION}"
+            RELEASE_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$REPO/releases/tags/$TAG")
+
+            if [ "$RELEASE_EXISTS" != "200" ]; then
+              # Buscar si hay algún release de esta app (cualquier versión)
+              ANY_RELEASE=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+                "https://api.github.com/repos/$REPO/releases?per_page=100" \
+                | jq -r --arg app "$APP_ID" '.[] | select(.tag_name | startswith($app + "_v")) | .tag_name' | head -1)
+
+              if [ -z "$ANY_RELEASE" ]; then
+                MESSAGES="${MESSAGES}⚠️ **${APP_ID}**: el info.md dice v${VERSION} pero **no tiene ningún release**\n"
+                MESSAGES="${MESSAGES}   [Ver info.md](https://github.com/$REPO/blob/main/apps/${APP_ID}/info.md)\n"
+              else
+                MESSAGES="${MESSAGES}⚠️ **${APP_ID}**: el info.md dice v${VERSION} pero el último release es **${ANY_RELEASE}**\n"
+                MESSAGES="${MESSAGES}   [Ver info.md](https://github.com/$REPO/blob/main/apps/${APP_ID}/info.md) | [Ver release](https://github.com/$REPO/releases/tag/${ANY_RELEASE})\n"
+              fi
+            fi
+          done
+
+          if [ -n "$MESSAGES" ]; then
+            echo "Enviando alertas a Discord..."
+            PAYLOAD=$(jq -n --arg content "🔍 **Revisión de versiones:**\n\n${MESSAGES}" '{content: $content}')
+            curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$DISCORD_WEBHOOK"
+            echo "Alertas enviadas."
+          else
+            echo "Todo en orden. Sin desajustes de versión."
+          fi
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\.github\workflows\workflow-failure-alert.yml
+====================
+name: Workflow Failure Alert
+
+on:
+  workflow_run:
+    workflows: ["Gemini Chat", "Telegram Jobs Monitor", "Remotive Jobs Monitor", "Download Notifier"]
+    types: [completed]
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+      - name: Notificar fallo a Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          MSG="❌ **Workflow fallido:** ${WORKFLOW_NAME}\n"
+          MSG="${MSG}Estado: ${CONCLUSION}\n"
+          MSG="${MSG}[Ver detalles](${RUN_URL})"
+          
+          PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')
+          curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$DISCORD_WEBHOOK"
+          
+          echo "Alerta enviada a Discord."
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\.gitignore
+====================
+# ============================================================
+# .gitignore para Träume des Blauen
+# ============================================================
+
+# ===== Android / Gradle =====
+# Archivos generados por la compilación de Android
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+.gradle/
+build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# ===== Keystores (NUNCA subir) =====
+# Archivos de firma de aplicaciones Android
+*.jks
+*.keystore
+
+# ===== IDE =====
+# Carpetas y archivos generados por editores
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# ===== Sistema operativo =====
+# Archivos generados por el sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== Catálogo generado automáticamente =====
+# Este archivo lo regenera el workflow de GitHub Actions
+docs/catalog.json
+
+# ===== Logs y temporales =====
+# Archivos temporales o de depuración
+*.log
+*.tmp
+*.bak
+temp/
+experimentales/
+otros/
+fallidos/
+
+# ===== Pendientes (local, no se sube) =====
+Pendings/
+
+# ===== PowerShell =====
+# Backups y temporales de scripts
+*.ps1.bak
+
+# ===== Scripts de automatización local =====
+# Scripts que no forman parte del repositorio público
+push.ps1
+
+# ============================================================
+# EXCEPCIONES (deben ir al final)
+# ============================================================
+
+# Los APKs de apps SÍ se suben (están dentro de apps/)
+!apps/**/*.apk
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\Pendings\generar_sesion.py
+====================
+from telethon.sync import TelegramClient
+from telethon.sessions import StringSession
+from telethon.network.connection.tcpabridged import ConnectionTcpAbridged # <-- IMPORTANTE
+
+print("--- Generador de sesión de Telegram ---")
+API_ID = int(input("Pega tu API ID: "))
+API_HASH = input("Pega tu API HASH: ")
+
+# Forzamos una conexión TCP Abridged, que a veces funciona mejor con redes inestables
+with TelegramClient(StringSession(), API_ID, API_HASH, connection=ConnectionTcpAbridged) as client:
+    session_string = client.session.save()
+    print("\n✅ Sesión generada. Cópiala:\n")
+    print(session_string)
+    print("\nGuárdala bien. Es como una contraseña.")
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\Pendings\gh_telegram_secrets.txt
+====================
+gh secret set TELEGRAM_API_ID --body "26125984"
+gh secret set TELEGRAM_API_HASH --body "40fd04dafd75b5b1ac1e9931725ffd1b"
+gh secret set TELEGRAM_SESSION --body "1AZWarzgBuw9C4tMBfWkYQEUVS38IbQt98ueLfXu8D_uS_IO_jJGjvSwvcvfUUBcm60Ic_-jaVnn-9ossqoqyMp5tiPjexQtt2KdVtMpdbSY-MyAOc5__v26DUTqV3N7MjTJ79elxaR7CoopLxjxNpZWy7KZIVCQx0TcWccYFa4ZdY9rcXsZdKIaxRMpCUf7dJdzS5-WAWUtRvDee8d_tdG0yDLYbhFSCXMiAwu-B_BhQyk2Cw4OwMwqDaqJ-PiJfeM2gvcduQR3_tfttozFu5jQsTxjJ_YYQX_rkfco8zgPuZOSlrTo4dDFiMvHPnUBGyFgNgZXsXEtCti12kEjTLb1NsF-dhXU="
+
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\Pendings\telegram_api_secrets.txt
+====================
+App api_id:
+
+26125984
+App api
+
+26125984
+
+_hash:
+
+40fd04dafd75b5b1ac1e9931725ffd1b
+
+App title:
+Monitor CubanTech Jobs.
+Short name:
+cubanjobsmonitor
+alphanumeric, 5-32 characters
+FCM credentials  Update  
+WNS credentials  Update  
+Available MTProto servers
+Test configuration:
+149.154.167.40:443
+DC 2
+Public keys:
+-----BEGIN RSA PUBLIC KEY-----
+MIIBCgKCAQEAyMEdY1aR+sCR3ZSJrtztKTKqigvO/vBfqACJLZtS7QMgCGXJ6XIR
+yy7mx66W0/sOFa7/1mAZtEoIokDP3ShoqF4fVNb6XeqgQfaUHd8wJpDWHcR2OFwv
+plUUI1PLTktZ9uW2WE23b+ixNwJjJGwBDJPQEQFBE+vfmH0JP503wr5INS1poWg/
+j25sIWeYPHYeOrFp/eXaqhISP6G+q2IeTaWTXpwZj4LzXq5YOpk4bYEQ6mvRq7D1
+aHWfYmlEGepfaYR8Q0YqvvhYtMte3ITnuSJs171+GDqpdKcSwHnd6FudwGO4pcCO
+j4WcDuXc2CTHgH8gFTNhp/Y8/SpDOhvn9QIDAQAB
+-----END RSA PUBLIC KEY-----
+Production configuration:
+149.154.167.50:443
+DC 2
+Public keys:
+-----BEGIN RSA PUBLIC KEY-----
+MIIBCgKCAQEA6LszBcC1LGzyr992NzE0ieY+BSaOW622Aa9Bd4ZHLl+TuFQ4lo4g
+5nKaMBwK/BIb9xUfg0Q29/2mgIR6Zr9krM7HjuIcCzFvDtr+L0GQjae9H0pRB2OO
+62cECs5HKhT5DZ98K33vmWiLowc621dQuwKWSQKjWf50XYFw42h21P2KXUGyp2y/
++aEyZ+uVgLLQbRA1dEjSDZ2iGRy12Mk5gpYc397aYp438fsJoHIgJ2lgMv5h7WY9
+t6N/byY9Nw9p21Og3AoXSL2q/2IJ1WRUhebgAdGVMlV1fkuOQoEzR7EdpqtQD9Cs
+5+bfo3Nhmcyvk5ftB0WkJ9z6bNZ7yxrP8wIDAQAB
+-----END RSA PUBLIC KEY-----
+Save changesCancel
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\README.md
+====================
+# Träume des Blauen
+
+> *Sueños de lo Azul*
+
+Catálogo personal de aplicaciones móviles desarrolladas por **Dreamer** (Yozora).  
+Aplicaciones funcionales, probadas y útiles, disponibles para descarga directa.
+
+---
+
+## 📱 ¿Qué es esto?
+
+Un repositorio que cumple tres funciones a la vez:
+
+1. **Almacén** de las aplicaciones (APK) y su información.
+2. **Catálogo web** publicado en GitHub Pages.
+3. **Fuente de datos** (`catalog.json`) que alimenta tanto la web como la app Android del catálogo.
+
+Todo el contenido se genera automáticamente a partir de la estructura de carpetas.
+
+---
+
+## 🗂️ Estructura del repositorio
+Traeume-des-Blauen/
+├── apps/ # Una carpeta por aplicación
+│ └── converty/
+│ ├── converty_v1.2.0.apk
+│ ├── icon.png
+│ └── info.md # Metadatos + descripción (frontmatter YAML)
+│
+├── scripts/
+│ └── Generate-Catalog.ps1 # Genera docs/catalog.json
+│
+├── docs/ # Sitio web (GitHub Pages)
+│ ├── index.html
+│ ├── style.css
+│ ├── app.js
+│ └── catalog.json # Generado automáticamente
+│
+├── .github/
+│ └── workflows/
+│ └── release-and-catalog.yml # CI/CD: crea releases y regenera catalog.json
+│
+├── .gitignore
+└── README.md
+text
+Copy
+Download
+
+---
+
+## ➕ Cómo agregar una aplicación nueva
+
+1. Crea una carpeta dentro de `apps/` con el nombre de la app (minúsculas, sin espacios).
+   Ejemplo: `apps/mi-app-nueva/`
+
+2. Dentro coloca:
+   - El APK, con nombre `<app-id>_v<version>.apk` (ej. `mi_app_nueva_v1.0.0.apk`).
+     Sin diéresis, sin mayúsculas, con guiones bajos.
+   - `icon.png` (cuadrado, mínimo 256×256, ideal < 200 KB).
+   - `info.md` con el frontmatter YAML (ver plantilla abajo).
+
+3. Haz `git push`. El workflow hace el resto automáticamente.
+
+---
+
+## 📄 Plantilla de `info.md`
+
+> ⚠️ **Importante:** los encabezados del cuerpo deben ser `## Description` y `## Uso`
+> (en inglés el primero, sin tildes ninguno de los dos). Esto es porque PowerShell 5.1
+> puede corromper las tildes al leer el archivo y el parser dejaría de encontrarlos.
+
+```markdown
+---
+name: Nombre de la App
+version: 1.0.0
+version_code: 1
+package: com.ejemplo.app
+category: Utilidades
+min_android: 8.0
+min_sdk: 26
+target_sdk: 34
+technologies:
+  - Kotlin
+  - Jetpack Compose
+input_formats: []
+output_formats: []
+restrictions: null
+dedication: null
+github: https://github.com/luisenriquepupo16-rgb
+---
+
+## Description
+
+Texto libre describiendo la app (en inglés, sin tildes).
+
+## Uso
+
+1. Paso uno
+2. Paso dos
+
+## Características
+
+- Punto 1
+- Punto 2
+
+## Notas
+
+Lo que quieras añadir.
+ 
+⚙️ Cómo funciona la automatización
+1. 
+Haces push a main con cambios en apps/**.
+2. 
+GitHub Actions ejecuta el workflow release-and-catalog.yml.
+3. 
+Primera fase — Releases:
+◦ 
+Detecta las apps que han cambiado en el último commit.
+◦ 
+Para cada una, lee su info.md, calcula el tag <app-id>_v<version>,
+y crea (o recrea) un release de GitHub con el APK y el icon.png como assets.
+4. 
+Segunda fase — Catálogo:
+◦ 
+Ejecuta scripts/Generate-Catalog.ps1.
+◦ 
+El script recorre cada app, lee su info.md, calcula el hash SHA-256 del APK,
+y arma docs/catalog.json con las URLs apuntando a los releases.
+5. 
+El workflow hace commit del catalog.json actualizado con [skip ci].
+6. 
+GitHub Pages sirve el sitio actualizado automáticamente.
+ 
+🌐 Sitio web
+Publicado en: https://luisenriquepupo16-rgb.github.io/Traeume-des-Blauen/
+ 
+📜 Licencia y condiciones
+• 
+Las aplicaciones son de libre descarga y distribución.
+• 
+No se alienta ninguna forma de monetización o mal uso.
+• 
+El código fuente no se comparte a menos que se acuerde explícitamente.
+ 
+Desarrollado por Dreamer · Cuba · 2026
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\apps\converty\converty_v1.2.0.apk
+====================
+[ARCHIVO BINARIO - CONTENIDO NO LEGIBLE]
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\apps\converty\icon.png
+====================
+[ARCHIVO BINARIO - CONTENIDO NO LEGIBLE]
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\apps\converty\info.md
+====================
+---
+name: Converty
+version: 1.2.0
+version_code: 5
+package: com.converty.neki
+category: Utilidades
+min_android: 8.0
+min_sdk: 26
+target_sdk: 34
+technologies:
+  - Kotlin
+  - Apache POI
+  - iText7
+  - OpenCSV
+  - Kotlin Coroutines
+  - Foreground Service (dataSync)
+  - Storage Access Framework (SAF)
+  - Material Components 3
+  - View Binding
+input_formats:
+  - PPTX
+  - DOCX
+  - XLSX
+  - PDF
+  - CSV
+  - TXT
+  - MD
+  - JSON
+  - XML
+  - HTML
+output_formats:
+  - TXT
+  - PDF
+  - DOC
+  - DOCX
+restrictions: null
+dedication: Para mi amiga, que ya no tendrá que pelearse con panfletos de conferencias.
+github: https://github.com/luisenriquepupo16-rgb
+---
+
+## Description
+
+Aplicación Android que convierte documentos y presentaciones a formatos de texto, extrayendo el contenido de archivos como PPTX, DOCX, XLSX y PDF para generar una copia en TXT, PDF, DOC o DOCX.
+
+## Uso
+
+1. Abre la app.
+2. Selecciona uno o varios archivos para convertir.
+3. Elige el formato de salida (TXT, PDF, DOC o DOCX).
+4. Espera a que termine la conversión.
+5. Encuentra los archivos generados en `Documentos/Converty/` o en el explorador interno.
+
+## Características
+
+- ✅ Conversión individual y en masa (varios archivos o carpeta completa)
+- ✅ Extracción de texto y tablas desde PPTX, DOCX, XLSX, PDF, CSV, TXT y más
+- ✅ Doble guardado: copia interna + copia visible en `Documentos/Converty/`
+- ✅ Explorador de archivos generados con navegación por subcarpetas
+- ✅ Selección múltiple para copiar o eliminar en masa
+- ✅ Notificaciones ricas con acciones: Compartir, Abrir, Eliminar
+- ✅ Conversión en segundo plano con notificación de progreso
+- ✅ Sistema de códigos de error (E-1XX a E-8XX) para diagnóstico
+
+## Formatos soportados
+
+**Entrada:** PPTX, DOCX, XLSX, PDF, CSV, TXT, MD, JSON, XML, HTML  
+**Salida:** TXT, PDF, DOC, DOCX
+
+## Mejoras recientes (v1.2.0)
+
+- **Notificaciones ricas** con acciones directas: Compartir, Abrir, Eliminar.
+- **Notificación final de lote** con "Ver en Converty" y "Copiar resumen".
+- **Sistema de códigos de error** E-1XX a E-8XX para diagnóstico remoto.
+- **Cancelación de lotes** desde la notificación.
+- **Doble guardado** (copia interna + copia en Documentos).
+
+## Notas técnicas
+
+- ProGuard/R8 desactivado a propósito: POI + XMLBeans usan reflexión intensiva y el ofuscado rompía el procesamiento de PPTX/DOCX/XLSX.
+- App personal, no distribuida por Play Store.
+
+## Contacto
+
+Para soporte o reportes de bugs:  
+🐙 GitHub: [@luisenriquepupo16-rgb](https://github.com/luisenriquepupo16-rgb)
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\apps\dibujama\dibujama_v1.1.0.apk
+====================
+[ARCHIVO BINARIO - CONTENIDO NO LEGIBLE]
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\apps\dibujama\icon.png
+====================
+[ARCHIVO BINARIO - CONTENIDO NO LEGIBLE]
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\apps\dibujama\info.md
+====================
+---
+name: Dibujama
+version: 1.1.0
+version_code: 2
+package: com.dibujama.app
+category: Galería
+min_android: 8.0
+min_sdk: 26
+target_sdk: 34
+technologies:
+  - Kotlin
+  - Jetpack Compose
+  - Ktor
+  - Kotlinx Serialization
+  - DataStore
+  - Coil
+input_formats: []
+output_formats: []
+restrictions: null
+dedication: Para un Universo Creativo.
+github: https://github.com/luisenriquepupo16-rgb
+---
+
+## Description
+
+Aplicación oficial de la galería Dibujama. Explora los dibujos de la comunidad Universo Creativo, con soporte offline, caché inteligente y actualización automática del contenido.
+
+## Uso
+
+1. Abre la app.
+2. Explora la galería de dibujos.
+3. Usa la búsqueda para encontrar un dibujo por nombre o descripción.
+4. Toca cualquier dibujo para verlo en grande.
+5. Comparte tus dibujos favoritos con amigos.
+
+## Características
+
+- ✅ Galería completa con todos los dibujos de la comunidad
+- ✅ Búsqueda por nombre o descripción
+- ✅ Tabs "Todos" y "Nuevos"
+- ✅ Modo offline con caché local
+- ✅ Actualización automática del contenido
+- ✅ Compartir dibujos por WhatsApp y Telegram
+- ✅ Modo claro y oscuro automático
+- ✅ Interfaz en español, diseño Material 3
+
+## Notas técnicas
+
+- La app lee el `images_data.json` publicado en GitHub Pages.
+- El contenido se cachea localmente con DataStore.
+- Las imágenes se cargan con Coil.
+
+## Contacto
+
+- GitHub: [@luisenriquepupo16-rgb](https://github.com/luisenriquepupo16-rgb)
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\apps\magic_world\icon.png
+====================
+[ARCHIVO BINARIO - CONTENIDO NO LEGIBLE]
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\apps\magic_world\info.md
+====================
+---
+name: Magic World
+version: 2.1.10
+version_code: 8
+package: com.mundomagico.bebe
+category: Educativa
+min_android: 8.0
+min_sdk: 26
+target_sdk: 34
+technologies:
+  - Kotlin
+  - WebView
+  - HTML5
+  - CSS3
+  - JavaScript
+  - Canvas API
+  - Web Speech API
+  - Web Audio API
+input_formats: []
+output_formats: []
+restrictions: null
+dedication: Para el primito más enérgico que he conocido.
+github: https://github.com/luisenriquepupo16-rgb
+---
+
+## Description
+
+Aplicación educativa para bebés y niños pequeños. Enseña vocabulario básico (animales, números, abecedario, colores, figuras, frutas, partes del cuerpo, emociones, naturaleza, familia, vehículos y música) con sonidos, voz en español y minijuegos interactivos.
+
+## Uso
+
+1. Abre la app.
+2. Explora las categorías deslizando la barra superior: Animales, Números, ABC, Colores, Figuras, Frutas, Cuerpo, Emociones, Naturaleza, Familia, Vehículos y Música.
+3. Toca cualquier tarjeta para escuchar su nombre y sonido.
+4. Pulsa "🎮 Juegos" para acceder a los minijuegos.
+5. Personaliza el perfil del niño tocando la barra de estrellas (nombre, edad, género y foto).
+6. Usa el bloqueo infantil (🔒) para evitar que el niño salga de la app.
+
+## Características
+
+- ✅ 12 categorías educativas: animales, números, abecedario, colores, figuras, frutas, cuerpo, emociones, naturaleza, familia, vehículos y música.
+- ✅ Más de 100 tarjetas interactivas con voz en español y sonidos.
+- ✅ 10 minijuegos: ¿Dónde está?, Parejas Mágicas, Alimenta al Amigo, Cocina Divertida, Atrapa los Globos, Aprende a Contar, Piano Infantil, Dibujo Mágico, Adivina la Sombra y Explota Burbujas.
+- ✅ Perfil personalizable: nombre, edad, género y foto del niño.
+- ✅ Sistema de estrellas como recompensa.
+- ✅ Amigo virtual (mascota) que interactúa con el niño.
+- ✅ Música ambiente relajante.
+- ✅ Modo bloqueo infantil para evitar salidas accidentales.
+- ✅ Pantalla completa.
+- ✅ 100% offline.
+
+## Notas técnicas
+
+- La UI es un WebView que carga un HTML local con todo el contenido.
+- El audio y la voz usan Web Audio API y Web Speech API.
+- El puente nativo `Android.speak()` se usa para el texto a voz cuando está disponible.
+- El perfil del niño se guarda en `localStorage` del WebView.
+- ProGuard activado (minify + shrinkResources).
+- Firma con keystore personalizado.
+
+## Contacto
+
+- GitHub: [@luisenriquepupo16-rgb](https://github.com/luisenriquepupo16-rgb)
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\apps\magic_world\magic_world_v2.1.10.apk
+====================
+[ARCHIVO BINARIO - CONTENIDO NO LEGIBLE]
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\apps\mipy_caja\icon.png
+====================
+[ARCHIVO BINARIO - CONTENIDO NO LEGIBLE]
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\apps\mipy_caja\info.md
+====================
+---
+name: Mipy Caja
+version: 2.2.21
+version_code: 26
+package: com.babymedina
+category: Negocios
+min_android: 8.0
+min_sdk: 26
+target_sdk: 34
+technologies:
+  - Kotlin
+  - WebView
+  - Tailwind CSS
+  - Chart.js
+  - Lucide
+input_formats: []
+output_formats: []
+restrictions: Licencia de activación requerida (15, 30 o 365 días). Modo demo limitado a 10 operaciones.
+dedication: Para mi molesto primo, un regalo de cumpleaños.
+github: https://github.com/luisenriquepupo16-rgb
+---
+
+## Description
+
+Aplicación Android nativa para punto de venta (POS) con gestión de inventario, control de caja, ventas y licencias. Funciona 100% offline y almacena todos los datos en el dispositivo.
+
+## Uso
+
+1. Abre la app.
+2. Activa tu licencia (15, 30 o 365 días) o usa el modo demo.
+3. Gestiona tu inventario: agrega, edita o elimina productos, importa/exporta CSV.
+4. Abre la caja para empezar a vender.
+5. Agrega productos al carrito, aplica descuentos y selecciona el método de pago (efectivo o transferencia).
+6. Cierra la caja para generar un reporte detallado del día.
+7. Consulta estadísticas y reportes con gráficos integrados.
+
+## Características
+
+- ✅ Gestión de inventario: CRUD completo, importación/exportación de CSV.
+- ✅ Punto de venta: Carrito de compras, métodos de pago (Efectivo/Transferencia), descuentos y QR para transferencias.
+- ✅ Control de caja: Apertura y cierre de caja con reporte detallado.
+- ✅ Licencias: Sistema de activación con claves de 15, 30 y 365 días (modo demo limitado a 10 operaciones).
+- ✅ Anti-retroceso de tiempo: Evita el fraude cambiando la fecha del sistema.
+- ✅ Sin conexión a internet: 100% local, todos los datos se almacenan en el dispositivo.
+
+## Notas técnicas
+
+- UI/UX construida con WebView y Tailwind CSS.
+- Gráficos con Chart.js.
+- Iconos con Lucide.
+- Compilado con ProGuard activado (minify + shrinkResources).
+- Firma con keystore personalizado.
+
+## Contacto
+
+- WhatsApp: +51 51161405
+- Correo: luisenriquepupo16@gmail.com
+- GitHub: [@luisenriquepupo16-rgb](https://github.com/luisenriquepupo16-rgb)
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\apps\mipy_caja\mipy_caja_v2.2.21.apk
+====================
+[ARCHIVO BINARIO - CONTENIDO NO LEGIBLE]
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\apps\traeume_des_blauen\icon.png
+====================
+[ARCHIVO BINARIO - CONTENIDO NO LEGIBLE]
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\apps\traeume_des_blauen\info.md
+====================
+---
+name: Träume des Blauen
+version: 1.1.1
+version_code: 9
+package: com.traeume.blauen
+category: Catálogo
+min_android: 8.0
+min_sdk: 26
+target_sdk: 34
+technologies:
+  - Kotlin
+  - Jetpack Compose
+  - Ktor
+  - Kotlinx Serialization
+  - DataStore
+  - Coil
+  - WorkManager
+  - Foreground Service (dataSync)
+  - Material 3
+input_formats: []
+output_formats: []
+restrictions: null
+dedication: Para todos los que sueñan en azul.
+github: https://github.com/luisenriquepupo16-rgb
+---
+
+## Description
+
+Aplicación oficial del catálogo Träume des Blauen. Permite explorar, buscar y descargar todas las aplicaciones publicadas, con soporte offline, caché inteligente y actualización automática del contenido. Incluye además una sección Forja donde los usuarios pueden encargar aplicaciones Android personalizadas a través de un cuestionario guiado que se envía por WhatsApp.
+
+## Uso
+
+1. Abre la app.
+2. En la sección Mostrador, explora el catálogo de aplicaciones disponibles.
+3. Usa la búsqueda o los filtros por categoría para encontrar lo que necesitas.
+4. Toca una tarjeta para ver los detalles de la app.
+5. Pulsa "Descargar" para descargar la app. La descarga continúa en segundo plano aunque salgas de la aplicación.
+6. Cuando termine, pulsa "Instalar" para instalarla.
+7. En la sección Forja, consulta las condiciones y pulsa "Crear petición" para encargar tu propia aplicación.
+8. Rellena el cuestionario y envíalo por WhatsApp.
+
+## Características
+
+- ✅ Catálogo completo con todas las apps publicadas
+- ✅ Búsqueda por nombre, descripción o tecnologías
+- ✅ Filtros por categoría
+- ✅ Tabs "Todas" y "Nuevas"
+- ✅ Modo offline con caché local
+- ✅ Actualización automática del contenido
+- ✅ Descarga e instalación de APKs integrada
+- ✅ Descargas en segundo plano con notificación persistente
+- ✅ Cancelación real de descargas desde el diálogo o la notificación
+- ✅ Compartir apps por WhatsApp y Telegram
+- ✅ Sección Forja con condiciones de encargo detalladas
+- ✅ Cuestionario de petición con autoguardado y validación en vivo
+- ✅ Envío de peticiones por WhatsApp
+- ✅ Notificaciones agrupadas de actualizaciones y nuevas apps
+- ✅ Modo claro, oscuro y automático
+- ✅ Interfaz en español, diseño Material 3
+
+## Notas técnicas
+
+- La app lee el `catalog.json` publicado en GitHub Pages.
+- El contenido se cachea localmente con DataStore.
+- Los APKs se descargan con Ktor en un Foreground Service.
+- La instalación usa FileProvider y el instalador del sistema.
+- Las comprobaciones periódicas se hacen con WorkManager (cada 12 horas).
+- El borrador del cuestionario se persiste en DataStore.
+- La app tiene dos secciones principales: Mostrador (catálogo) y Forja (encargos).
+
+## Novedades de la versión 1.1.0
+
+- **Nueva sección Forja:** permite encargar aplicaciones personalizadas con información clara sobre el proceso, condiciones de pago, demo, garantía y propiedad intelectual.
+- **Cuestionario de petición:** formulario completo con autoguardado, validación en vivo y envío por WhatsApp.
+- **Descargas en segundo plano:** las descargas ahora continúan aunque salgas de la aplicación, con notificación persistente y cancelación real.
+- **Notificaciones:** avisos agrupados de nuevas versiones de apps instaladas y de nuevas apps publicadas.
+- **Nuevos ajustes:** modo de tema (Automático, Claro, Oscuro), pantallas de Información y Ayuda.
+- **Navegación:** barra inferior con las dos secciones principales (Mostrador y Forja).
+- **Mejoras internas:** corrección de bugs de estado de botones (Descargar / Instalar / Actualizar / Abrir), limpieza de código y strings externalizados.
+
+## Contacto
+
+- GitHub: [@luisenriquepupo16-rgb](https://github.com/luisenriquepupo16-rgb)
+- WhatsApp: +53 54935996
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\apps\traeume_des_blauen\traeume_des_blauen_v1.1.1.apk
+====================
+[ARCHIVO BINARIO - CONTENIDO NO LEGIBLE]
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\docs\app.js
+====================
+/* ================================================================
+   PORTAFOLIO — Dreamer · Träume des Blauen
+   Lógica: carga catalog.json, carga el Gist de descargas, renderiza.
+   ================================================================ */
+
+// ================================================================
+// 1. CONFIGURACIÓN
+// ================================================================
+const CATALOG_URL = "catalog.json";
+const GIST_DOWNLOADS_URL = "https://gist.githubusercontent.com/luisenriquepupo16-rgb/40391b1420b19d763eff10e35d1aec63/raw/downloads.json";
+
+// ================================================================
+// 2. UTILIDADES
+// ================================================================
+
+/**
+ * Formatea bytes a MB o KB.
+ */
+function formatSize(bytes) {
+    if (!bytes) return "—";
+    const mb = bytes / (1024 * 1024);
+    return mb >= 1 ? `${mb.toFixed(2)} MB` : `${(bytes / 1024).toFixed(0)} KB`;
+}
+
+/**
+ * Escapa HTML para prevenir XSS.
+ */
+function escapeHtml(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+/**
+ * Formatea un número con separador de miles.
+ */
+function formatNumber(n) {
+    if (n === null || n === undefined) return "0";
+    return n.toLocaleString("es-ES");
+}
+
+// ================================================================
+// 3. TEMA CLARO / OSCURO
+// ================================================================
+function initTheme() {
+    const toggle = document.getElementById("themeToggle");
+    const icon = toggle.querySelector(".theme-icon");
+    const label = toggle.querySelector(".theme-label");
+    const saved = localStorage.getItem("theme") || "light";
+
+    function applyTheme(theme) {
+        if (theme === "dark") {
+            document.documentElement.setAttribute("data-theme", "dark");
+            icon.textContent = "☀️";
+            label.textContent = "Modo claro";
+        } else {
+            document.documentElement.removeAttribute("data-theme");
+            icon.textContent = "🌙";
+            label.textContent = "Modo oscuro";
+        }
+    }
+
+    applyTheme(saved);
+
+    toggle.addEventListener("click", () => {
+        const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+        const newTheme = isDark ? "light" : "dark";
+        localStorage.setItem("theme", newTheme);
+        applyTheme(newTheme);
+    });
+}
+
+// ================================================================
+// 4. CARGA DEL CATÁLOGO
+// ================================================================
+async function loadCatalog() {
+    try {
+        const response = await fetch(CATALOG_URL, { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+    } catch (err) {
+        console.error("Error cargando catalog.json:", err);
+        return null;
+    }
+}
+
+// ================================================================
+// 5. CARGA DEL GIST DE DESCARGAS
+// ================================================================
+async function loadDownloads() {
+    try {
+        const response = await fetch(GIST_DOWNLOADS_URL, { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        return data.current || {};
+    } catch (err) {
+        console.warn("No se pudieron cargar las descargas:", err);
+        return {};
+    }
+}
+
+// ================================================================
+// 6. RENDERIZADO DE PROYECTOS
+// ================================================================
+function renderProjects(apps, downloads) {
+    const grid = document.getElementById("projectsGrid");
+
+    if (!apps || apps.length === 0) {
+        grid.innerHTML = `<p class="error-message">No hay proyectos publicados todavía.</p>`;
+        return;
+    }
+
+    // Ordenar por fecha descendente
+    const sorted = [...apps].sort((a, b) => {
+        return (b.updated_at || "").localeCompare(a.updated_at || "");
+    });
+
+    grid.innerHTML = sorted.map(app => {
+        const downloadsCount = downloads[app.id] || 0;
+        const hasDownloads = downloadsCount > 0;
+
+        const categoryHtml = app.category
+            ? `<span class="category-tag">${escapeHtml(app.category)}</span>`
+            : "";
+
+        const dedicationHtml = app.dedication
+            ? `<div class="dedication">💙 ${escapeHtml(app.dedication)}</div>`
+            : "";
+
+        const downloadsHtml = hasDownloads
+            ? `<span class="downloads-badge">📥 ${formatNumber(downloadsCount)}</span>`
+            : "";
+
+        return `
+            <article class="project-card" role="listitem">
+                ${categoryHtml}
+                <h3>${escapeHtml(app.name)}</h3>
+                <p class="description">${escapeHtml(app.description)}</p>
+                ${dedicationHtml}
+                <div class="meta">
+                    <span>📦 ${formatSize(app.apk?.size_bytes)}</span>
+                    <span>📅 ${escapeHtml(app.updated_at)}</span>
+                    ${downloadsHtml}
+                </div>
+                <a href="${escapeHtml(app.apk?.url || '#')}" 
+                   target="_blank" 
+                   rel="noopener" 
+                   class="btn-primary"
+                   style="text-align:center; padding:10px; font-size:0.9rem; margin-top:8px;">
+                    📥 Descargar
+                </a>
+            </article>
+        `;
+    }).join("");
+}
+
+// ================================================================
+// 7. INICIALIZACIÓN
+// ================================================================
+async function init() {
+    initTheme();
+
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // Cargar catálogo y descargas en paralelo
+    const [catalog, downloads] = await Promise.all([
+        loadCatalog(),
+        loadDownloads()
+    ]);
+
+    if (!catalog) {
+        document.getElementById("projectsGrid").innerHTML =
+            `<p class="error-message">⚠️ No se pudieron cargar los proyectos. Intenta recargar la página.</p>`;
+        return;
+    }
+
+    renderProjects(catalog.apps || [], downloads);
+}
+
+document.addEventListener("DOMContentLoaded", init);
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\docs\assets\favicon.png
+====================
+[ARCHIVO BINARIO - CONTENIDO NO LEGIBLE]
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\docs\assets\logo_grande.png
+====================
+[ARCHIVO BINARIO - CONTENIDO NO LEGIBLE]
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\docs\assets\logo_header.png
+====================
+[ARCHIVO BINARIO - CONTENIDO NO LEGIBLE]
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\docs\assets\og_image.png
+====================
+[ARCHIVO BINARIO - CONTENIDO NO LEGIBLE]
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\docs\blog\blog.css
+====================
+/* ================================================================
+   BLOG — Estilos específicos
+   Reutiliza las variables y estilos base del portafolio.
+   ================================================================ */
+
+/* ===== Lista de entradas ===== */
+.blog-list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.blog-list-item {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-left: 5px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    transition: all var(--transition);
+}
+
+.blog-list-item:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+    border-left-color: var(--blue);
+}
+
+.blog-list-item h3 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin: 8px 0 12px;
+    line-height: 1.3;
+}
+
+.blog-list-item h3 a {
+    color: var(--blue);
+    text-decoration: none;
+    transition: color var(--transition);
+}
+
+.blog-list-item h3 a:hover {
+    color: var(--gold);
+    text-decoration: underline;
+}
+
+.read-more {
+    display: inline-block;
+    margin-top: 12px;
+    color: var(--blue);
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: all var(--transition);
+}
+
+.read-more:hover {
+    color: var(--gold);
+    transform: translateX(4px);
+}
+
+/* ===== Artículo individual ===== */
+.article {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.article-header {
+    margin-bottom: 40px;
+    padding-bottom: 24px;
+    border-bottom: 3px solid var(--gold);
+}
+
+.article-header h1 {
+    font-size: 2.2rem;
+    color: var(--blue);
+    font-weight: 800;
+    line-height: 1.3;
+    margin-bottom: 16px;
+}
+
+.article-meta {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.article-content {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: var(--text);
+}
+
+.article-content h2 {
+    font-size: 1.6rem;
+    color: var(--blue);
+    margin: 40px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border);
+}
+
+.article-content h3 {
+    font-size: 1.25rem;
+    color: var(--wood-dark);
+    margin: 32px 0 12px;
+    font-weight: 700;
+}
+
+[data-theme="dark"] .article-content h3 {
+    color: var(--wood);
+}
+
+.article-content p {
+    margin-bottom: 16px;
+}
+
+.article-content ul,
+.article-content ol {
+    margin: 16px 0 16px 32px;
+}
+
+.article-content li {
+    margin-bottom: 8px;
+}
+
+.article-content strong {
+    color: var(--blue);
+    font-weight: 700;
+}
+
+.article-content em {
+    font-style: italic;
+    color: var(--text-muted);
+}
+
+.article-content a {
+    color: var(--blue);
+    text-decoration: underline;
+    transition: color var(--transition);
+}
+
+.article-content a:hover {
+    color: var(--gold);
+}
+
+.article-content blockquote {
+    border-left: 4px solid var(--gold);
+    padding: 12px 20px;
+    margin: 24px 0;
+    background: var(--surface);
+    border-radius: 0 var(--radius-small) var(--radius-small) 0;
+    font-style: italic;
+    color: var(--text-muted);
+}
+
+.article-content code {
+    font-family: var(--font-mono);
+    background: var(--bg-secondary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--blue-dark);
+}
+
+[data-theme="dark"] .article-content code {
+    color: var(--blue-light);
+}
+
+.article-content pre {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-small);
+    padding: 20px;
+    overflow-x: auto;
+    margin: 24px 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.article-content pre code {
+    background: none;
+    padding: 0;
+    color: var(--text);
+    font-size: inherit;
+}
+
+/* ===== Navegación entre artículos ===== */
+.article-nav {
+    max-width: 800px;
+    margin: 40px auto 0;
+    padding: 24px 20px;
+    border-top: 2px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.article-nav a {
+    color: var(--blue);
+    text-decoration: none;
+    font-weight: 700;
+    transition: color var(--transition);
+}
+
+.article-nav a:hover {
+    color: var(--gold);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 700px) {
+    .article-header h1 {
+        font-size: 1.6rem;
+    }
+
+    .article-content {
+        font-size: 1rem;
+    }
+
+    .article-content h2 {
+        font-size: 1.3rem;
+    }
+
+    .article-content h3 {
+        font-size: 1.1rem;
+    }
+
+    .article-content pre {
+        padding: 12px;
+        font-size: 0.8rem;
+    }
+}
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\docs\blog\catalogo-json.html
+====================
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Cómo estructuré el catálogo de apps con un JSON generado automáticamente.">
+    <meta name="author" content="Dreamer (Luisi)">
+    <title>Cómo estructuré el catálogo de apps con un JSON generado automáticamente — Dreamer</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="blog.css">
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span class="theme-icon">🌙</span>
+    <span class="theme-label">Modo oscuro</span>
+</button>
+
+<nav class="main-nav" aria-label="Navegación principal">
+    <a href="../index.html">← Volver al portafolio</a>
+    <a href="index.html">Blog</a>
+</nav>
+
+<article class="article">
+
+    <header class="article-header">
+        <p class="article-meta">Octubre 2026 · Automatización</p>
+        <h1>Cómo estructuré el catálogo de apps con un JSON generado automáticamente</h1>
+    </header>
+
+    <div class="article-content">
+
+        <p>Una de las decisiones que más tiempo me ahorró en Träume des Blauen fue automatizar la generación del catálogo. En vez de mantener a mano una lista de aplicaciones, el catálogo se genera solo a partir de la estructura de carpetas. Este es el proceso.</p>
+
+        <h2>El problema</h2>
+
+        <p>Cuando empecé, tenía varias apps publicadas. Cada vez que añadía una nueva, tenía que:</p>
+
+        <ul>
+            <li>Actualizar la web con los datos de la app.</li>
+            <li>Actualizar la app Android con los mismos datos.</li>
+            <li>Mantener todo sincronizado.</li>
+        </ul>
+
+        <p>Era tedioso y propenso a errores. Se me olvidaba actualizar un lado u otro, y los datos quedaban inconsistentes.</p>
+
+        <h2>La idea</h2>
+
+        <p>La solución fue simple: <strong>separar los datos de la presentación</strong>. Los datos viven en un archivo JSON generado automáticamente. La presentación (web, app Android) solo lee ese JSON. Así, solo hay que mantener los datos en un sitio, y todo lo demás se actualiza solo.</p>
+
+        <h2>La estructura de carpetas</h2>
+
+        <p>Cada app vive en su propia carpeta dentro de <code>apps/</code>:</p>
+
+        <pre><code>apps/
+├── converty/
+│   ├── converty_v1.2.0.apk
+│   ├── icon.png
+│   └── info.md
+├── magic_world/
+│   ├── magic_world_v2.1.10.apk
+│   ├── icon.png
+│   └── info.md
+└── ...</code></pre>
+
+        <p>El archivo <code>info.md</code> contiene los metadatos de la app en formato YAML (frontmatter) + cuerpo markdown. Por ejemplo:</p>
+
+        <pre><code>---
+name: Converty
+version: 1.2.0
+version_code: 5
+package: com.converty.neki
+category: Utilidades
+technologies:
+  - Kotlin
+  - Apache POI
+---
+
+## Description
+
+Aplicación Android que convierte documentos...</code></pre>
+
+        <h2>El workflow</h2>
+
+        <p>En GitHub, un workflow detecta cambios en la carpeta <code>apps/</code> y hace dos cosas:</p>
+
+        <ol>
+            <li>Crea un release de GitHub con el APK y el icono.</li>
+            <li>Ejecuta un script que recorre todas las apps, lee su <code>info.md</code>, y genera el <code>catalog.json</code>.</li>
+        </ol>
+
+        <p>El script está escrito en PowerShell. Por cada app:</p>
+
+        <ul>
+            <li>Lee el frontmatter YAML.</li>
+            <li>Busca el APK y el icono.</li>
+            <li>Calcula el hash SHA-256 del APK.</li>
+            <li>Construye una entrada del JSON con URLs apuntando al release.</li>
+        </ul>
+
+        <h2>El JSON resultante</h2>
+
+        <p>El <code>catalog.json</code> tiene esta estructura:</p>
+
+        <pre><code>{
+  "version": 1,
+  "generated_at": "2026-10-11T...",
+  "site": {
+    "title": "Traeume des Blauen",
+    "author": "Dreamer"
+  },
+  "apps": [
+    {
+      "id": "converty",
+      "name": "Converty",
+      "version": "1.2.0",
+      "category": "Utilidades",
+      "icon": "https://...",
+      "apk": {
+        "url": "https://...",
+        "size_bytes": 19626720,
+        "sha256": "..."
+      }
+    }
+  ]
+}</code></pre>
+
+        <p>Cada app tiene toda la información necesaria para ser mostrada y descargada.</p>
+
+        <h2>Los consumidores</h2>
+
+        <p>Dos cosas leen ese JSON:</p>
+
+        <ul>
+            <li><strong>La web del portafolio</strong>, que lo lee desde JavaScript y renderiza las tarjetas.</li>
+            <li><strong>La app Android</strong>, que lo descarga con Ktor y lo cachea con DataStore.</li>
+        </ul>
+
+        <p>Ambos leen la misma URL: <code>https://luisenriquepupo16-rgb.github.io/Traeume-des-Blauen/catalog.json</code>. Cuando el catálogo cambia, ambos se actualizan solos.</p>
+
+        <h2>Los detalles importantes</h2>
+
+        <h3>Encabezados sin tildes</h3>
+
+        <p>Un detalle que me costó descubrir: los encabezados del cuerpo del <code>info.md</code> (<code>## Description</code>, <code>## Uso</code>) tienen que estar en inglés y sin tildes. La razón es que PowerShell 5.1 puede corromper las tildes al leer el archivo, y el parser deja de encontrar los encabezados. El contenido sí puede estar en español.</p>
+
+        <h3>Nombres de archivos sin caracteres especiales</h3>
+
+        <p>Los APKs deben nombrarse como <code>&lt;app-id&gt;_v&lt;version&gt;.apk</code>, sin diéresis, sin mayúsculas. Los iconos siempre <code>icon.png</code>. Esto evita problemas de encoding en distintos sistemas.</p>
+
+        <h3>El workflow hace commit del JSON</h3>
+
+        <p>Después de generar el <code>catalog.json</code>, el workflow hace commit automático con un mensaje que incluye <code>[skip ci]</code>. Así no se dispara a sí mismo en bucle.</p>
+
+        <h2>Lo que aprendí</h2>
+
+        <p>Tres lecciones:</p>
+
+        <ol>
+            <li><strong>Separar datos de presentación es clave.</strong> Cuando los datos viven en un sitio y la presentación en otro, todo se actualiza solo. No hay que sincronizar nada a mano.</li>
+            <li><strong>La automatización paga a largo plazo.</strong> Invertir 2 horas en configurar un workflow ahorra decenas de horas de mantenimiento manual.</li>
+            <li><strong>Los detalles técnicos importan.</strong> El encoding, los nombres de archivos, los encabezados sin tildes... Son detalles pequeños que, si se ignoran, rompen todo el sistema.</li>
+        </ol>
+
+        <h2>Conclusión</h2>
+
+        <p>Automatizar el catálogo fue una de las mejores decisiones del proyecto. Ahora añadir una app nueva es tan simple como crear una carpeta con tres archivos y hacer push. El resto se hace solo.</p>
+
+        <p>Si estás manteniendo un catálogo a mano, mi recomendación es: automatízalo. No tiene que ser perfecto, solo tiene que quitar el trabajo manual del medio.</p>
+
+    </div>
+
+</article>
+
+<nav class="article-nav">
+    <a href="descargas-background.html">← Entrada anterior</a>
+    <a href="portafolio-sin-romper-app.html">Siguiente entrada →</a>
+</nav>
+
+<footer class="main-footer">
+    <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
+</footer>
+
+<script>
+    (function() {
+        const toggle = document.getElementById("themeToggle");
+        const icon = toggle.querySelector(".theme-icon");
+        const label = toggle.querySelector(".theme-label");
+        const saved = localStorage.getItem("theme") || "light";
+
+        function applyTheme(theme) {
+            if (theme === "dark") {
+                document.documentElement.setAttribute("data-theme", "dark");
+                icon.textContent = "☀️";
+                label.textContent = "Modo claro";
+            } else {
+                document.documentElement.removeAttribute("data-theme");
+                icon.textContent = "🌙";
+                label.textContent = "Modo oscuro";
+            }
+        }
+
+        applyTheme(saved);
+
+        toggle.addEventListener("click", function() {
+            const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+            const newTheme = isDark ? "light" : "dark";
+            localStorage.setItem("theme", newTheme);
+            applyTheme(newTheme);
+        });
+
+        document.getElementById("year").textContent = new Date().getFullYear();
+    })();
+</script>
+
+</body>
+</html>
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\docs\blog\descargas-background.html
+====================
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Cómo resolví el problema de las descargas en background en Android con un Foreground Service.">
+    <meta name="author" content="Dreamer (Luisi)">
+    <title>Cómo resolví el problema de las descargas en background — Dreamer</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="blog.css">
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span class="theme-icon">🌙</span>
+    <span class="theme-label">Modo oscuro</span>
+</button>
+
+<nav class="main-nav" aria-label="Navegación principal">
+    <a href="../index.html">← Volver al portafolio</a>
+    <a href="index.html">Blog</a>
+</nav>
+
+<article class="article">
+
+    <header class="article-header">
+        <p class="article-meta">Octubre 2026 · Desarrollo Android</p>
+        <h1>Cómo resolví el problema de las descargas en background en Android</h1>
+    </header>
+
+    <div class="article-content">
+
+        <p>Cuando empecé a desarrollar Träume des Blauen, la app que uso para publicar mis aplicaciones, no anticipé que las descargas serían uno de los problemas más complejos del proyecto. Este es el relato de cómo lo resolví, con contexto y sin edulcorar.</p>
+
+        <h2>El problema</h2>
+
+        <p>La app permite a los usuarios descargar APKs directamente. Al principio, la descarga se hacía en una corrutina lanzada desde el <code>ViewModel</code>. Funcionaba, pero tenía un fallo crítico: <strong>si el usuario salía de la app durante la descarga, la descarga se interrumpía</strong>.</p>
+
+        <p>En Android, cuando una app pasa a segundo plano, el sistema puede matar el proceso si necesita recursos. La corrutina vivía en el <code>ViewModel</code>, que está atado al ciclo de vida de la Activity. Si la Activity moría, el ViewModel moría, y la corrutina con él.</p>
+
+        <p>La consecuencia práctica: el usuario tenía que quedarse en la app durante toda la descarga. Si salía a hacer otra cosa, perdía el progreso. Aceptable para un APK pequeño, molesto para uno grande.</p>
+
+        <h2>La primera solución (fallida): DownloadManager</h2>
+
+        <p>Investigué y encontré el <code>DownloadManager</code> de Android. Es un servicio del sistema diseñado exactamente para esto: gestiona descargas en background, con notificación y todo. Parecía la solución perfecta.</p>
+
+        <p>El problema: <strong>el <code>DownloadManager</code> no puede escribir en la carpeta privada de la app</strong> (<code>filesDir</code>). Es una carpeta aislada por seguridad, y el <code>DownloadManager</code> corre en un proceso distinto. Solo puede escribir en la carpeta de descargas pública.</p>
+
+        <p>Probé varias alternativas, pero ninguna funcionaba limpiamente. Y necesitaba la carpeta privada porque la app instala los APKs con <code>FileProvider</code>, que requiere una ruta controlada.</p>
+
+        <h2>La solución real: Foreground Service</h2>
+
+        <p>La solución fue un <code>Foreground Service</code>. Es un servicio de Android que se ejecuta en primer plano, con una notificación persistente que informa al usuario de que algo está corriendo. El sistema garantiza que este servicio no se mata, incluso si la app pasa a background.</p>
+
+        <p>La arquitectura quedó así:</p>
+
+        <ul>
+            <li>Un servicio llamado <code>DownloadService</code> que gestiona la descarga.</li>
+            <li>Una corrutina dentro del servicio que descarga con Ktor.</li>
+            <li>El servicio actualiza una notificación persistente con el progreso.</li>
+            <li>La UI observa un <code>StateFlow</code> global (el <code>DownloadManagerSingleton</code>) para mostrar el progreso en pantalla.</li>
+            <li>Al terminar, el servicio se detiene a sí mismo.</li>
+        </ul>
+
+        <p>Con esto, la descarga sobrevive a que la app pase a background. Si el usuario sale de la app, la descarga continúa. Al volver, ve el progreso actualizado.</p>
+
+        <h2>Los detalles que aprendí por el camino</h2>
+
+        <p>Implementar esto bien tiene varias trampas:</p>
+
+        <h3>El tipo de Foreground Service</h3>
+
+        <p>Desde Android 14, todos los <code>Foreground Service</code> deben declarar su tipo. Para descargas, el tipo es <code>dataSync</code>. Sin eso, el servicio no arranca.</p>
+
+        <h3>El permiso de notificaciones</h3>
+
+        <p>En Android 13+, hay que pedir el permiso <code>POST_NOTIFICATIONS</code> explícitamente. Si el usuario lo deniega, el servicio sigue funcionando, pero la notificación no se ve.</p>
+
+        <h3>La cancelación real</h3>
+
+        <p>Un bug que descubrí tarde: el botón "Cancelar" del diálogo cerraba el diálogo, pero no cancelaba la descarga. La descarga seguía en background y terminaba de todos modos.</p>
+
+        <p>La solución fue que el botón "Cancelar" envíe una señal al servicio (<code>ACTION_CANCEL</code>) mediante un <code>Intent</code>. El servicio cancela el <code>Job</code> de la corrutina, borra el archivo parcial y se detiene.</p>
+
+        <h3>El estado en el ViewModel</h3>
+
+        <p>Antes de rediseñar, el estado del botón (<em>Descargar</em>, <em>Instalar</em>, <em>Actualizar</em>, <em>Abrir</em>) se recalculaba en cada recomposición con <code>remember</code>. Eso causaba bugs de timing: el botón no se actualizaba al instante.</p>
+
+        <p>La solución fue centralizar el estado en un <code>Map&lt;String, AppStatus&gt;</code> en el ViewModel. La UI lee directamente de ahí. Cuando un paquete cambia (instalación, actualización, desinstalación), un <code>PackageChangeReceiver</code> dispara un recálculo.</p>
+
+        <h2>Lo que aprendí</h2>
+
+        <p>Tres lecciones que me llevo:</p>
+
+        <ol>
+            <li><strong>Las tareas largas no deben depender del ciclo de vida de la UI.</strong> Deben vivir en un servicio independiente. La UI es solo una vista del estado, no el estado mismo.</li>
+            <li><strong>No todas las herramientas del sistema son universales.</strong> El <code>DownloadManager</code> es útil, pero no para este caso. A veces hay que bajar un nivel y hacer las cosas uno mismo.</li>
+            <li><strong>Cuando algo falla por timing, la solución no es añadir más <code>delay()</code>.</strong> Es rediseñar la arquitectura para que no dependa del timing.</li>
+        </ol>
+
+        <h2>Conclusión</h2>
+
+        <p>Este problema me llevó varios intentos y varias versiones. La solución final no es la más elegante del mundo, pero funciona, y sobrevive a los casos raros. Para una app personal como la mía, es suficiente.</p>
+
+        <p>Si estás lidiando con algo similar, mi recomendación es: empieza con la solución simple (corrutina en el ViewModel), mide los problemas reales, y solo migra a <code>Foreground Service</code> si de verdad lo necesitas. La migración no es trivial.</p>
+
+    </div>
+
+</article>
+
+<nav class="article-nav">
+    <a href="index.html">← Todas las entradas</a>
+    <a href="catalogo-json.html">Siguiente entrada →</a>
+</nav>
+
+<footer class="main-footer">
+    <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
+</footer>
+
+<script>
+    (function() {
+        const toggle = document.getElementById("themeToggle");
+        const icon = toggle.querySelector(".theme-icon");
+        const label = toggle.querySelector(".theme-label");
+        const saved = localStorage.getItem("theme") || "light";
+
+        function applyTheme(theme) {
+            if (theme === "dark") {
+                document.documentElement.setAttribute("data-theme", "dark");
+                icon.textContent = "☀️";
+                label.textContent = "Modo claro";
+            } else {
+                document.documentElement.removeAttribute("data-theme");
+                icon.textContent = "🌙";
+                label.textContent = "Modo oscuro";
+            }
+        }
+
+        applyTheme(saved);
+
+        toggle.addEventListener("click", function() {
+            const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+            const newTheme = isDark ? "light" : "dark";
+            localStorage.setItem("theme", newTheme);
+            applyTheme(newTheme);
+        });
+
+        document.getElementById("year").textContent = new Date().getFullYear();
+    })();
+</script>
+
+</body>
+</html>
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\docs\blog\index.html
+====================
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Blog técnico de Dreamer. Notas sobre el desarrollo de aplicaciones Android.">
+    <meta name="author" content="Dreamer (Luisi)">
+    <title>Blog — Dreamer · Träume des Blauen</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="blog.css">
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span class="theme-icon">🌙</span>
+    <span class="theme-label">Modo oscuro</span>
+</button>
+
+<header class="main-header">
+    <div class="header-content">
+        <img src="../assets/logo_grande.png" alt="Logo de Dreamer" class="header-logo">
+        <div class="header-text">
+            <h1>Blog</h1>
+            <p class="subtitle">Notas técnicas</p>
+            <p class="tagline">Documentación honesta de lo que he construido y aprendido</p>
+        </div>
+    </div>
+</header>
+
+<nav class="main-nav" aria-label="Navegación principal">
+    <a href="../index.html">← Volver al portafolio</a>
+    <a href="index.html">Blog</a>
+</nav>
+
+<main>
+
+    <section class="section">
+        <h2>Todas las entradas</h2>
+        <p class="section-intro">Notas sobre desarrollo Android, decisiones técnicas, y aprendizajes. Sin pretensiones de tutorial, solo documentación honesta.</p>
+
+        <div class="blog-list">
+
+            <article class="blog-list-item">
+                <p class="blog-date">Octubre 2026</p>
+                <h3><a href="descargas-background.html">Cómo resolví el problema de las descargas en background en Android</a></h3>
+                <p class="blog-excerpt">El problema: cuando el usuario salía de la app, la descarga se interrumpía. La solución: Foreground Service con notificación persistente. El aprendizaje: las tareas largas no deben depender del ciclo de vida de la UI.</p>
+                <a href="descargas-background.html" class="read-more">Leer entrada →</a>
+            </article>
+
+            <article class="blog-list-item">
+                <p class="blog-date">Octubre 2026</p>
+                <h3><a href="catalogo-json.html">Cómo estructuré el catálogo de apps con un JSON generado automáticamente</a></h3>
+                <p class="blog-excerpt">El problema: mantener un catálogo actualizado a mano era tedioso. La solución: un workflow de GitHub Actions que genera un <code>catalog.json</code> desde la estructura de carpetas. El aprendizaje: separar contenido de presentación.</p>
+                <a href="catalogo-json.html" class="read-more">Leer entrada →</a>
+            </article>
+
+            <article class="blog-list-item">
+                <p class="blog-date">Octubre 2026</p>
+                <h3><a href="portafolio-sin-romper-app.html">Cómo convertí la web del catálogo en un portafolio sin romper la app</a></h3>
+                <p class="blog-excerpt">El problema: la web ya no se usaba, pero la app dependía de <code>catalog.json</code>. La solución: mantener el JSON intacto y reescribir solo la presentación. El aprendizaje: separar datos de interfaz es clave para escalar.</p>
+                <a href="portafolio-sin-romper-app.html" class="read-more">Leer entrada →</a>
+            </article>
+
+        </div>
+    </section>
+
+</main>
+
+<footer class="main-footer">
+    <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
+    <p class="footer-tagline">Aplicaciones sencillas, útiles y hechas con claridad.</p>
+</footer>
+
+<script>
+    // Tema claro/oscuro
+    (function() {
+        const toggle = document.getElementById("themeToggle");
+        const icon = toggle.querySelector(".theme-icon");
+        const label = toggle.querySelector(".theme-label");
+        const saved = localStorage.getItem("theme") || "light";
+
+        function applyTheme(theme) {
+            if (theme === "dark") {
+                document.documentElement.setAttribute("data-theme", "dark");
+                icon.textContent = "☀️";
+                label.textContent = "Modo claro";
+            } else {
+                document.documentElement.removeAttribute("data-theme");
+                icon.textContent = "🌙";
+                label.textContent = "Modo oscuro";
+            }
+        }
+
+        applyTheme(saved);
+
+        toggle.addEventListener("click", function() {
+            const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+            const newTheme = isDark ? "light" : "dark";
+            localStorage.setItem("theme", newTheme);
+            applyTheme(newTheme);
+        });
+
+        document.getElementById("year").textContent = new Date().getFullYear();
+    })();
+</script>
+
+</body>
+</html>
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\docs\blog\portafolio-sin-romper-app.html
+====================
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Cómo convertí la web del catálogo en un portafolio sin romper la app.">
+    <meta name="author" content="Dreamer (Luisi)">
+    <title>Cómo convertí la web del catálogo en un portafolio sin romper la app — Dreamer</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="blog.css">
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span class="theme-icon">🌙</span>
+    <span class="theme-label">Modo oscuro</span>
+</button>
+
+<nav class="main-nav" aria-label="Navegación principal">
+    <a href="../index.html">← Volver al portafolio</a>
+    <a href="index.html">Blog</a>
+</nav>
+
+<article class="article">
+
+    <header class="article-header">
+        <p class="article-meta">Octubre 2026 · Arquitectura web</p>
+        <h1>Cómo convertí la web del catálogo en un portafolio sin romper la app</h1>
+    </header>
+
+    <div class="article-content">
+
+        <p>Este es un relato corto sobre una decisión arquitectónica que me permitió cambiar la cara pública de mi proyecto sin tocar la app que la consumía. La idea central: <strong>separar los datos de la presentación</strong> tiene ventajas que no siempre son obvias hasta que las necesitas.</p>
+
+        <h2>El contexto</h2>
+
+        <p>Träume des Blauen tiene dos componentes:</p>
+
+        <ul>
+            <li><strong>Una web publicada en GitHub Pages</strong>, que era originalmente un catálogo de apps.</li>
+            <li><strong>Una app Android</strong>, que lee el mismo catálogo para mostrar las apps disponibles.</li>
+        </ul>
+
+        <p>Ambos leían el mismo archivo: <code>docs/catalog.json</code>, publicado en <code>https://luisenriquepupo16-rgb.github.io/Traeume-des-Blauen/catalog.json</code>.</p>
+
+        <p>El problema: la web ya no la usaba nadie. La app es la interfaz real. La web era un remanente de la primera versión, cuando el catálogo era solo web. Pero seguía publicada, y seguía consumiendo recursos (aunque mínimos).</p>
+
+        <h2>La idea</h2>
+
+        <p>Quería convertir la web en un <strong>portafolio personal</strong>. Un lugar donde mostrar mis proyectos, mis retos técnicos, mi blog, y mi contacto. Algo que me representara, no solo una lista de apps.</p>
+
+        <p>Pero había un problema: si tocaba la web, podía romper la app. La app depende de <code>catalog.json</code>. Si ese archivo desaparecía o cambiaba de URL, la app dejaba de funcionar.</p>
+
+        <p>La solución fue simple: <strong>mantener el JSON intacto, y reescribir solo la presentación</strong>.</p>
+
+        <h2>Cómo lo hice</h2>
+
+        <p>Tres reglas:</p>
+
+        <ol>
+            <li><strong>No tocar <code>catalog.json</code>.</strong> El archivo sigue en la misma URL, con la misma estructura. La app lo sigue leyendo igual.</li>
+            <li><strong>No tocar el workflow</strong> que genera el JSON. Sigue funcionando igual.</li>
+            <li><strong>Reescribir <code>index.html</code>, <code>style.css</code> y <code>app.js</code>.</strong> Estos archivos son solo presentación. La app no los usa.</li>
+        </ol>
+
+        <p>Con esas tres reglas, la web antigua desapareció y apareció el portafolio. La app siguió funcionando igual, porque nunca dependió de la web, solo del JSON.</p>
+
+        <h2>Por qué funcionó</h2>
+
+        <p>Esta separación entre datos y presentación es una lección clásica de arquitectura de software, pero a veces se olvida. Cuando los datos viven en un sitio y la presentación en otro, puedes cambiar la presentación sin tocar los datos.</p>
+
+        <p>En este caso:</p>
+
+        <ul>
+            <li>Los datos: <code>catalog.json</code>.</li>
+            <li>Presentación web: <code>index.html</code>, <code>style.css</code>, <code>app.js</code>.</li>
+            <li>Presentación Android: la app nativa.</li>
+        </ul>
+
+        <p>Los datos son la fuente única de verdad. Ambas presentaciones los leen. Cambiar una presentación no afecta a la otra.</p>
+
+        <h2>El detalle que casi se me escapa</h2>
+
+        <p>Cuando estaba planeando la conversión, casi cometo un error: pensé en renombrar <code>docs/</code> a algo más apropiado, como <code>web/</code>. Pero GitHub Pages sirve desde <code>docs/</code> por defecto. Si lo renombraba, la URL del <code>catalog.json</code> cambiaba, y la app dejaba de encontrarlo.</p>
+
+        <p>Así que mantuve <code>docs/</code>. Menos elegante, pero funciona.</p>
+
+        <p>Otra cosa que aprendí: la URL de GitHub Pages es <code>usuario.github.io/repositorio/</code>, y sirve desde la carpeta configurada (<code>docs/</code> en este caso). Si algún día cambio la carpeta, tengo que actualizar la URL en la app también. Es un acoplamiento que hay que tener presente.</p>
+
+        <h2>Lo que aprendí</h2>
+
+        <p>Tres lecciones:</p>
+
+        <ol>
+            <li><strong>Separar datos de presentación es clave.</strong> No es solo una buena práctica teórica, tiene consecuencias prácticas cuando quieres cambiar una cosa sin tocar la otra.</li>
+            <li><strong>Las URLs son contratos.</strong> Si cambias una URL, rompes a todos los que dependen de ella. En este caso, la app dependía de la URL del JSON. Cambiarla habría sido un error grave.</li>
+            <li><strong>Los detalles de infraestructura importan.</strong> La carpeta <code>docs/</code>, el nombre del repositorio, la configuración de GitHub Pages... Son detalles que determinan la URL final. Hay que entenderlos antes de tocar nada.</li>
+        </ol>
+
+        <h2>Conclusión</h2>
+
+        <p>Convertir la web en un portafolio fue una decisión que me permitió tener una presencia pública más coherente con lo que hago, sin arriesgar la app. La clave fue entender qué partes del sistema eran datos y cuáles eran presentación, y tratar cada una con las reglas correspondientes.</p>
+
+        <p>Si estás pensando en rediseñar algo en tu proyecto, mi recomendación es: identifica primero qué es dato y qué es presentación. Cambia la presentación todo lo que quieras. Los datos, trátalos con cuidado.</p>
+
+    </div>
+
+</article>
+
+<nav class="article-nav">
+    <a href="catalogo-json.html">← Entrada anterior</a>
+    <a href="index.html">Todas las entradas</a>
+</nav>
+
+<footer class="main-footer">
+    <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
+</footer>
+
+<script>
+    (function() {
+        const toggle = document.getElementById("themeToggle");
+        const icon = toggle.querySelector(".theme-icon");
+        const label = toggle.querySelector(".theme-label");
+        const saved = localStorage.getItem("theme") || "light";
+
+        function applyTheme(theme) {
+            if (theme === "dark") {
+                document.documentElement.setAttribute("data-theme", "dark");
+                icon.textContent = "☀️";
+                label.textContent = "Modo claro";
+            } else {
+                document.documentElement.removeAttribute("data-theme");
+                icon.textContent = "🌙";
+                label.textContent = "Modo oscuro";
+            }
+        }
+
+        applyTheme(saved);
+
+        toggle.addEventListener("click", function() {
+            const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+            const newTheme = isDark ? "light" : "dark";
+            localStorage.setItem("theme", newTheme);
+            applyTheme(newTheme);
+        });
+
+        document.getElementById("year").textContent = new Date().getFullYear();
+    })();
+</script>
+
+</body>
+</html><!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Cómo convertí la web del catálogo en un portafolio sin romper la app.">
+    <meta name="author" content="Dreamer (Luisi)">
+    <title>Cómo convertí la web del catálogo en un portafolio sin romper la app — Dreamer</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="blog.css">
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span class="theme-icon">🌙</span>
+    <span class="theme-label">Modo oscuro</span>
+</button>
+
+<nav class="main-nav" aria-label="Navegación principal">
+    <a href="../index.html">← Volver al portafolio</a>
+    <a href="index.html">Blog</a>
+</nav>
+
+<article class="article">
+
+    <header class="article-header">
+        <p class="article-meta">Octubre 2026 · Arquitectura web</p>
+        <h1>Cómo convertí la web del catálogo en un portafolio sin romper la app</h1>
+    </header>
+
+    <div class="article-content">
+
+        <p>Este es un relato corto sobre una decisión arquitectónica que me permitió cambiar la cara pública de mi proyecto sin tocar
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\docs\catalog.json
+====================
+{
+  "version": 1,
+  "generated_at": "2026-10-11T06:25:02Z",
+  "site": {
+    "title": "Traeume des Blauen",
+    "author": "Dreamer",
+    "github": "luisenriquepupo16-rgb",
+    "whatsapp": "5354935996"
+  },
+  "apps": [
+    {
+      "id": "converty",
+      "name": "Converty",
+      "version": "1.2.0",
+      "version_code": 5,
+      "package": "com.converty.neki",
+      "category": "Utilidades",
+      "technologies": [
+        "Kotlin",
+        "Apache POI",
+        "iText7",
+        "OpenCSV",
+        "Kotlin Coroutines",
+        "Foreground Service (dataSync)",
+        "Storage Access Framework (SAF)",
+        "Material Components 3",
+        "View Binding"
+      ],
+      "input_formats": [
+        "PPTX",
+        "DOCX",
+        "XLSX",
+        "PDF",
+        "CSV",
+        "TXT",
+        "MD",
+        "JSON",
+        "XML",
+        "HTML"
+      ],
+      "output_formats": [
+        "TXT",
+        "PDF",
+        "DOC",
+        "DOCX"
+      ],
+      "min_android": 8,
+      "min_sdk": 26,
+      "target_sdk": 34,
+      "restrictions": null,
+      "dedication": "Para mi amiga, que ya no tendrá que pelearse con panfletos de conferencias.",
+      "description": "Aplicación Android que convierte documentos y presentaciones a formatos de texto, extrayendo el contenido de archivos como PPTX, DOCX, XLSX y PDF para generar una copia en TXT, PDF, DOC o DOCX.",
+      "usage": "1. Abre la app.\r\n2. Selecciona uno o varios archivos para convertir.\r\n3. Elige el formato de salida (TXT, PDF, DOC o DOCX).\r\n4. Espera a que termine la conversión.\r\n5. Encuentra los archivos generados en `Documentos/Converty/` o en el explorador interno.",
+      "icon": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/converty_v1.2.0/icon.png",
+      "apk": {
+        "filename": "converty_v1.2.0.apk",
+        "url": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/converty_v1.2.0/converty_v1.2.0.apk",
+        "size_bytes": 19626720,
+        "sha256": "98e6b754b94285c99c6dca893017772d30b3a52e98dcb38436d92f50a5f8bc4d"
+      },
+      "tag": "converty_v1.2.0",
+      "updated_at": "2026-10-11"
+    },
+    {
+      "id": "dibujama",
+      "name": "Dibujama",
+      "version": "1.1.0",
+      "version_code": 2,
+      "package": "com.dibujama.app",
+      "category": "Galería",
+      "technologies": [
+        "Kotlin",
+        "Jetpack Compose",
+        "Ktor",
+        "Kotlinx Serialization",
+        "DataStore",
+        "Coil"
+      ],
+      "input_formats": [],
+      "output_formats": [],
+      "min_android": 8,
+      "min_sdk": 26,
+      "target_sdk": 34,
+      "restrictions": null,
+      "dedication": "Para un Universo Creativo.",
+      "description": "Aplicación oficial de la galería Dibujama. Explora los dibujos de la comunidad Universo Creativo, con soporte offline, caché inteligente y actualización automática del contenido.",
+      "usage": "1. Abre la app.\r\n2. Explora la galería de dibujos.\r\n3. Usa la búsqueda para encontrar un dibujo por nombre o descripción.\r\n4. Toca cualquier dibujo para verlo en grande.\r\n5. Comparte tus dibujos favoritos con amigos.",
+      "icon": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/dibujama_v1.1.0/icon.png",
+      "apk": {
+        "filename": "dibujama_v1.1.0.apk",
+        "url": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/dibujama_v1.1.0/dibujama_v1.1.0.apk",
+        "size_bytes": 14400511,
+        "sha256": "bb33fd157afefd593c64d47e6414412f6572983f735b051ebb64df96f6094b19"
+      },
+      "tag": "dibujama_v1.1.0",
+      "updated_at": "2026-10-11"
+    },
+    {
+      "id": "magic_world",
+      "name": "Magic World",
+      "version": "2.1.10",
+      "version_code": 8,
+      "package": "com.mundomagico.bebe",
+      "category": "Educativa",
+      "technologies": [
+        "Kotlin",
+        "WebView",
+        "HTML5",
+        "CSS3",
+        "JavaScript",
+        "Canvas API",
+        "Web Speech API",
+        "Web Audio API"
+      ],
+      "input_formats": [],
+      "output_formats": [],
+      "min_android": 8,
+      "min_sdk": 26,
+      "target_sdk": 34,
+      "restrictions": null,
+      "dedication": "Para el primito más enérgico que he conocido.",
+      "description": "Aplicación educativa para bebés y niños pequeños. Enseña vocabulario básico (animales, números, abecedario, colores, figuras, frutas, partes del cuerpo, emociones, naturaleza, familia, vehículos y música) con sonidos, voz en español y minijuegos interactivos.",
+      "usage": "1. Abre la app.\r\n2. Explora las categorías deslizando la barra superior: Animales, Números, ABC, Colores, Figuras, Frutas, Cuerpo, Emociones, Naturaleza, Familia, Vehículos y Música.\r\n3. Toca cualquier tarjeta para escuchar su nombre y sonido.\r\n4. Pulsa \"🎮 Juegos\" para acceder a los minijuegos.\r\n5. Personaliza el perfil del niño tocando la barra de estrellas (nombre, edad, género y foto).\r\n6. Usa el bloqueo infantil (🔒) para evitar que el niño salga de la app.",
+      "icon": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/magic_world_v2.1.10/icon.png",
+      "apk": {
+        "filename": "magic_world_v2.1.10.apk",
+        "url": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/magic_world_v2.1.10/magic_world_v2.1.10.apk",
+        "size_bytes": 1279251,
+        "sha256": "996a5a68e6246d49becf8f07bcef4f276852e1027099e39e8d70515e6bdfac3d"
+      },
+      "tag": "magic_world_v2.1.10",
+      "updated_at": "2026-10-11"
+    },
+    {
+      "id": "mipy_caja",
+      "name": "Mipy Caja",
+      "version": "2.2.21",
+      "version_code": 26,
+      "package": "com.babymedina",
+      "category": "Negocios",
+      "technologies": [
+        "Kotlin",
+        "WebView",
+        "Tailwind CSS",
+        "Chart.js",
+        "Lucide"
+      ],
+      "input_formats": [],
+      "output_formats": [],
+      "min_android": 8,
+      "min_sdk": 26,
+      "target_sdk": 34,
+      "restrictions": "Licencia de activación requerida (15, 30 o 365 días). Modo demo limitado a 10 operaciones.",
+      "dedication": "Para mi molesto primo, un regalo de cumpleaños.",
+      "description": "Aplicación Android nativa para punto de venta (POS) con gestión de inventario, control de caja, ventas y licencias. Funciona 100% offline y almacena todos los datos en el dispositivo.",
+      "usage": "1. Abre la app.\r\n2. Activa tu licencia (15, 30 o 365 días) o usa el modo demo.\r\n3. Gestiona tu inventario: agrega, edita o elimina productos, importa/exporta CSV.\r\n4. Abre la caja para empezar a vender.\r\n5. Agrega productos al carrito, aplica descuentos y selecciona el método de pago (efectivo o transferencia).\r\n6. Cierra la caja para generar un reporte detallado del día.\r\n7. Consulta estadísticas y reportes con gráficos integrados.",
+      "icon": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/mipy_caja_v2.2.21/icon.png",
+      "apk": {
+        "filename": "mipy_caja_v2.2.21.apk",
+        "url": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/mipy_caja_v2.2.21/mipy_caja_v2.2.21.apk",
+        "size_bytes": 1009503,
+        "sha256": "aa8a116498710e5962bfbd4cfe88276170effed29c7b251f4cc2a006b6bceb9b"
+      },
+      "tag": "mipy_caja_v2.2.21",
+      "updated_at": "2026-10-11"
+    },
+    {
+      "id": "traeume_des_blauen",
+      "name": "Träume des Blauen",
+      "version": "1.1.1",
+      "version_code": 9,
+      "package": "com.traeume.blauen",
+      "category": "Catálogo",
+      "technologies": [
+        "Kotlin",
+        "Jetpack Compose",
+        "Ktor",
+        "Kotlinx Serialization",
+        "DataStore",
+        "Coil",
+        "WorkManager",
+        "Foreground Service (dataSync)",
+        "Material 3"
+      ],
+      "input_formats": [],
+      "output_formats": [],
+      "min_android": 8,
+      "min_sdk": 26,
+      "target_sdk": 34,
+      "restrictions": null,
+      "dedication": "Para todos los que sueñan en azul.",
+      "description": "Aplicación oficial del catálogo Träume des Blauen. Permite explorar, buscar y descargar todas las aplicaciones publicadas, con soporte offline, caché inteligente y actualización automática del contenido. Incluye además una sección Forja donde los usuarios pueden encargar aplicaciones Android personalizadas a través de un cuestionario guiado que se envía por WhatsApp.",
+      "usage": "1. Abre la app.\r\n2. En la sección Mostrador, explora el catálogo de aplicaciones disponibles.\r\n3. Usa la búsqueda o los filtros por categoría para encontrar lo que necesitas.\r\n4. Toca una tarjeta para ver los detalles de la app.\r\n5. Pulsa \"Descargar\" para descargar la app. La descarga continúa en segundo plano aunque salgas de la aplicación.\r\n6. Cuando termine, pulsa \"Instalar\" para instalarla.\r\n7. En la sección Forja, consulta las condiciones y pulsa \"Crear petición\" para encargar tu propia aplicación.\r\n8. Rellena el cuestionario y envíalo por WhatsApp.",
+      "icon": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/traeume_des_blauen_v1.1.1/icon.png",
+      "apk": {
+        "filename": "traeume_des_blauen_v1.1.1.apk",
+        "url": "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/traeume_des_blauen_v1.1.1/traeume_des_blauen_v1.1.1.apk",
+        "size_bytes": 14152572,
+        "sha256": "73b3a578eccdf03184b9d870a8a62cc52b45cd85191228fbf11d3a6c45f4cbe1"
+      },
+      "tag": "traeume_des_blauen_v1.1.1",
+      "updated_at": "2026-10-11"
+    }
+  ]
+}
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\docs\index.html
+====================
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Portafolio de Dreamer (Luisi), desarrollador Android autodidacta desde Cuba. Aplicaciones móviles con Kotlin y Jetpack Compose.">
+    <meta name="author" content="Dreamer (Luisi)">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Dreamer · Träume des Blauen">
+    <meta property="og:description" content="Portafolio de Dreamer, desarrollador Android desde Cuba.">
+    <meta property="og:image" content="assets/og_image.png">
+    <meta property="og:type" content="website">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+    <link rel="apple-touch-icon" href="assets/logo_header.png">
+    
+    <title>Dreamer · Träume des Blauen</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Botón de tema -->
+<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span class="theme-icon">🌙</span>
+    <span class="theme-label">Modo oscuro</span>
+</button>
+
+<!-- Header -->
+<header class="main-header">
+    <div class="header-content">
+        <img src="assets/logo_grande.png" alt="Logo de Dreamer" class="header-logo">
+        <div class="header-text">
+            <h1>Dreamer</h1>
+            <p class="subtitle">Träume des Blauen</p>
+            <p class="tagline">Desarrollador Android autodidacta desde Cuba</p>
+        </div>
+    </div>
+</header>
+
+<!-- Navegación -->
+<nav class="main-nav" aria-label="Navegación principal">
+    <a href="#sobre-mi">Sobre mí</a>
+    <a href="#proyectos">Proyectos</a>
+    <a href="#retos">Retos técnicos</a>
+    <a href="#open-source">Open source</a>
+    <a href="blog/index.html">Blog</a>
+    <a href="#servicios">Servicios</a>
+    <a href="#contacto">Contacto</a>
+</nav>
+
+<main>
+
+    <!-- ===== Sección: Sobre mí ===== -->
+    <section id="sobre-mi" class="section">
+        <h2>Sobre mí</h2>
+        <div class="about-content">
+            <p>Soy <strong>Dreamer</strong> (Luisi), desarrollador Android autodidacta desde Cuba. Creo aplicaciones móviles con Kotlin y Jetpack Compose, con un enfoque en apps funcionales, offline y útiles para el día a día.</p>
+
+            <p>Mi trabajo se centra en resolver problemas concretos con herramientas sencillas: catálogos, gestores, calculadoras, apps educativas. Prefiero que una app haga una cosa bien, a que haga muchas mal.</p>
+
+            <p>Cuando no estoy programando, estudio y aprendo sobre nuevas tecnologías y frameworks. <em>Träume des Blauen</em> es el nombre de mi proyecto personal, donde publico todas las aplicaciones que desarrollo.</p>
+
+            <h3>Formación y experiencia</h3>
+            <ul class="experience-list">
+                <li>Programación competitiva desde los 14 años, principalmente en C++.</li>
+                <li>Participación en eventos nacionales de programación.</li>
+                <li>Participación en el ICPC (International Collegiate Programming Contest).</li>
+                <li>Conocimientos básicos de Java, Python, Django y Go.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ===== Sección: Proyectos ===== -->
+    <section id="proyectos" class="section">
+        <h2>Proyectos publicados</h2>
+        <p class="section-intro">Todas las aplicaciones que he desarrollado y publicado. Cada una está disponible para descargar libremente.</p>
+        
+        <div id="projectsGrid" class="projects-grid" role="list">
+            <p class="loading-message">Cargando proyectos…</p>
+        </div>
+    </section>
+
+    <!-- ===== Sección: Retos técnicos ===== -->
+    <section id="retos" class="section">
+        <h2>Retos técnicos</h2>
+        <p class="section-intro">Problemas concretos que he encontrado durante el desarrollo de Träume des Blauen, y cómo los he resuelto.</p>
+
+        <div class="challenges-grid">
+
+            <article class="challenge-card">
+                <h3>Transsion bloquea <code>Android/data/</code></h3>
+                <p class="challenge-context">En dispositivos Transsion (marca común en Cuba), el sistema bloquea el acceso a <code>Android/data/</code>. Las apps que guardan datos ahí no pueden leerlos.</p>
+                <p class="challenge-solution"><strong>Solución:</strong> usar <code>context.filesDir</code> en lugar de <code>Android/data/</code>. Es una carpeta privada de la app, siempre accesible.</p>
+                <p class="challenge-lesson"><strong>Aprendizaje:</strong> nunca asumir que las APIs estándar funcionan igual en todas las marcas.</p>
+            </article>
+
+            <article class="challenge-card">
+                <h3>DownloadManager no puede escribir en <code>filesDir</code></h3>
+                <p class="challenge-context"><code>DownloadManager</code> es un servicio del sistema que gestiona descargas. Pero no puede escribir en la carpeta privada de la app (<code>filesDir</code>), porque es una carpeta aislada.</p>
+                <p class="challenge-solution"><strong>Solución:</strong> sustituir <code>DownloadManager</code> por Ktor (cliente HTTP) y descargar directamente con <code>FileOutputStream</code>.</p>
+                <p class="challenge-lesson"><strong>Aprendizaje:</strong> no todas las herramientas del sistema son universales. A veces hay que bajar un nivel y hacerlo uno mismo.</p>
+            </article>
+
+            <article class="challenge-card">
+                <h3>El instalador no abre después de descargar</h3>
+                <p class="challenge-context">Después de descargar un APK, el botón "Instalar" no se actualizaba correctamente. A veces se quedaba en "Instalar" después de instalar, a veces no cambiaba a "Abrir".</p>
+                <p class="challenge-solution"><strong>Solución:</strong> rediseñar el sistema de estados. Usar un <code>Foreground Service</code> para descargas, un <code>PackageChangeReceiver</code> para detectar cambios en paquetes, y un <code>Map&lt;String, AppStatus&gt;</code> en el ViewModel como única fuente de verdad.</p>
+                <p class="challenge-lesson"><strong>Aprendizaje:</strong> cuando algo falla por "timing", la solución no es añadir más <code>delay()</code>. Es rediseñar la arquitectura para que no dependa del timing.</p>
+            </article>
+
+            <article class="challenge-card">
+                <h3>Perder el progreso de descarga al salir de la app</h3>
+                <p class="challenge-context">Si el usuario salía de la app durante una descarga, la descarga se interrumpía. Al volver, había que empezar de cero.</p>
+                <p class="challenge-solution"><strong>Solución:</strong> migrar de una corrutina en el ViewModel a un <code>Foreground Service</code> con notificación persistente. La descarga sobrevive a que la app pase a background.</p>
+                <p class="challenge-lesson"><strong>Aprendizaje:</strong> las tareas largas no deben depender del ciclo de vida de la UI. Deben vivir en un servicio independiente.</p>
+            </article>
+
+            <article class="challenge-card">
+                <h3>Cancelar una descarga no la cancelaba</h3>
+                <p class="challenge-context">El botón "Cancelar" del diálogo cerraba el diálogo, pero la descarga seguía en segundo plano. Al terminar, el archivo aparecía completo.</p>
+                <p class="challenge-solution"><strong>Solución:</strong> el botón "Cancelar" envía una señal al servicio (<code>ACTION_CANCEL</code>), que cancela el <code>Job</code> de la corrutina y borra el archivo parcial.</p>
+                <p class="challenge-lesson"><strong>Aprendizaje:</strong> "Cancelar" en una UI no es solo cerrar el diálogo. Es detener el proceso real.</p>
+            </article>
+
+        </div>
+    </section>
+
+    <!-- ===== Sección: Contribuciones open source ===== -->
+    <section id="open-source" class="section">
+        <h2>Contribuciones open source</h2>
+        <p class="section-intro">He contribuido a proyectos de código abierto reconocidos en el ecosistema Python.</p>
+
+        <div class="opensource-grid">
+
+            <article class="opensource-card">
+                <h3>FastAPI-Users</h3>
+                <p class="opensource-detail">PR #1564 — Fusionado</p>
+                <p class="opensource-description">Corrección en el proyecto FastAPI-Users, revisada y fusionada por el mantenedor principal del proyecto.</p>
+            </article>
+
+            <article class="opensource-card">
+                <h3>Pydantic</h3>
+                <p class="opensource-detail">PR #12953 — Fusionado</p>
+                <p class="opensource-description">Corrección en el proyecto Pydantic, revisada y fusionada por un mantenedor activo. Pydantic es una de las librerías de validación de datos más usadas del ecosistema Python.</p>
+            </article>
+
+        </div>
+
+        <p class="opensource-note">Contribuí a estos proyectos durante una etapa de aprendizaje y exploración del ecosistema open source.</p>
+    </section>
+
+    <!-- ===== Sección: Blog / Notas ===== -->
+    <section id="blog" class="section">
+        <h2>Blog / Notas</h2>
+        <p class="section-intro">Notas técnicas sobre el proceso de construcción de mis proyectos. Sin pretensiones de tutorial, solo documentación honesta de lo que he hecho y aprendido.</p>
+
+        <div class="blog-grid">
+
+            <article class="blog-card">
+                <h3><a href="blog/descargas-background.html">Cómo resolví el problema de las descargas en background en Android</a></h3>
+                <p class="blog-date">Octubre 2026</p>
+                <p class="blog-excerpt">El problema: cuando el usuario salía de la app, la descarga se interrumpía. La solución: Foreground Service con notificación persistente. El aprendizaje: las tareas largas no deben depender del ciclo de vida de la UI.</p>
+            </article>
+
+            <article class="blog-card">
+                <h3><a href="blog/catalogo-json.html">Cómo estructuré el catálogo de apps con un JSON generado automáticamente</a></h3>
+                <p class="blog-date">Octubre 2026</p>
+                <p class="blog-excerpt">El problema: mantener un catálogo actualizado a mano era tedioso. La solución: un workflow de GitHub Actions que genera un <code>catalog.json</code> desde la estructura de carpetas. El aprendizaje: separar contenido de presentación.</p>
+            </article>
+
+            <article class="blog-card">
+                <h3><a href="blog/portafolio-sin-romper-app.html">Cómo convertí la web del catálogo en un portafolio sin romper la app</a></h3>
+                <p class="blog-date">Octubre 2026</p>
+                <p class="blog-excerpt">El problema: la web ya no se usaba, pero la app dependía de <code>catalog.json</code>. La solución: mantener el JSON intacto y reescribir solo la presentación. El aprendizaje: separar datos de interfaz es clave para escalar.</p>
+            </article>
+
+        </div>
+
+        <div class="blog-cta">
+            <a href="blog/index.html" class="btn-secondary">Ver todas las entradas</a>
+        </div>
+    </section>
+
+    <!-- ===== Sección: Proyectos en progreso ===== -->
+    <section id="en-progreso" class="section">
+        <h2>Proyectos en progreso</h2>
+        <p class="section-intro">Cosas en las que estoy trabajando ahora mismo. No todo tiene que estar terminado para ser interesante.</p>
+
+        <div class="placeholder-box">
+            <p>🚧 Próximamente. Estoy preparando varios proyectos que quiero compartir aquí.</p>
+        </div>
+    </section>
+
+    <!-- ===== Sección: Aprendizaje continuo ===== -->
+    <section id="aprendizaje" class="section">
+        <h2>Aprendizaje continuo</h2>
+        <p class="section-intro">Lo que estoy aprendiendo, lo que he intentado, y lo que no ha salido. La honestidad también es contenido.</p>
+
+        <div class="placeholder-box">
+            <p>🚧 Próximamente. Estoy documentando mi proceso de aprendizaje.</p>
+        </div>
+    </section>
+
+    <!-- ===== Sección: Servicios (Forja) ===== -->
+    <section id="servicios" class="section">
+        <h2>Servicios — La Forja</h2>
+        <p class="section-intro">Además de mis aplicaciones publicadas, ofrezco servicios de desarrollo de aplicaciones Android personalizadas. Cada proyecto se evalúa caso por caso.</p>
+
+        <div class="services-grid">
+            <div class="service-card">
+                <h3>¿Qué se puede forjar?</h3>
+                <p>Aplicaciones Android a medida: catálogos, gestores, calculadoras, apps educativas, de negocios, o cualquier idea que tengas en mente.</p>
+            </div>
+
+            <div class="service-card">
+                <h3>Cómo funciona</h3>
+                <ol class="process-list">
+                    <li>Rellenas el cuestionario con tu idea.</li>
+                    <li>Recibes respuesta en 24-48 horas.</li>
+                    <li>Acordamos detalles, precio y plazo.</li>
+                    <li>50% por adelantado.</li>
+                    <li>Recibes una demo funcional de 10 días.</li>
+                    <li>Si te convence, abonas el resto.</li>
+                    <li>30 días de garantía de soporte.</li>
+                </ol>
+            </div>
+
+            <div class="service-card">
+                <h3>Plataforma</h3>
+                <p>Solo se aceptan peticiones para <strong>aplicaciones Android</strong>. No desarrollo para iOS.</p>
+            </div>
+        </div>
+
+        <div class="services-cta">
+            <a href="#contacto" class="btn-primary">Encargar aplicación</a>
+        </div>
+    </section>
+
+    <!-- ===== Sección: Contacto ===== -->
+    <section id="contacto" class="section">
+        <h2>Contacto</h2>
+        <p class="section-intro">¿Tienes una idea? ¿Quieres encargar una aplicación? ¿O simplemente saludar? Aquí me encuentras.</p>
+
+        <div class="contact-grid">
+            <a href="https://wa.me/5354935996" target="_blank" rel="noopener" class="contact-card">
+                <span class="contact-icon">💬</span>
+                <span class="contact-label">WhatsApp</span>
+                <span class="contact-value">+53 54935996</span>
+            </a>
+
+            <a href="mailto:luisenriquepupo16@gmail.com" class="contact-card">
+                <span class="contact-icon">✉️</span>
+                <span class="contact-label">Email</span>
+                <span class="contact-value">luisenriquepupo16@gmail.com</span>
+            </a>
+
+            <a href="https://github.com/luisenriquepupo16-rgb" target="_blank" rel="noopener" class="contact-card">
+                <span class="contact-icon">🐙</span>
+                <span class="contact-label">GitHub</span>
+                <span class="contact-value">@luisenriquepupo16-rgb</span>
+            </a>
+        </div>
+
+        <h3 class="coming-soon-title">Próximamente</h3>
+        <div class="contact-grid coming-soon">
+            <div class="contact-card disabled">
+                <span class="contact-icon">🎮</span>
+                <span class="contact-label">Discord</span>
+                <span class="contact-value">Próximamente</span>
+            </div>
+
+            <div class="contact-card disabled">
+                <span class="contact-icon">📘</span>
+                <span class="contact-label">Facebook</span>
+                <span class="contact-value">Próximamente</span>
+            </div>
+
+            <div class="contact-card disabled">
+                <span class="contact-icon">📷</span>
+                <span class="contact-label">Instagram</span>
+                <span class="contact-value">Próximamente</span>
+            </div>
+
+            <div class="contact-card disabled">
+                <span class="contact-icon">📨</span>
+                <span class="contact-label">Telegram</span>
+                <span class="contact-value">Próximamente</span>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- Footer -->
+<footer class="main-footer">
+    <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
+    <p class="footer-tagline">Aplicaciones sencillas, útiles y hechas con claridad.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\docs\style.css
+====================
+/* ================================================================
+   PORTAFOLIO — Dreamer · Träume des Blauen
+   Estilo de gremio: azul mágico, madera, dorado, pergamino.
+   ================================================================ */
+
+/* ===== Variables ===== */
+:root {
+    /* Colores base — modo claro (gremio de día) */
+    --bg: #F5EDE0;
+    --bg-secondary: #EBE0CD;
+    --surface: #FAF3E5;
+    --surface-hover: #F2E6CE;
+    --text: #2B1810;
+    --text-muted: #5C4033;
+    --border: #D9C7A3;
+
+    /* Gremio */
+    --blue: #2E5A88;
+    --blue-dark: #1B3A5C;
+    --blue-light: #6A9BC8;
+    --wood: #B8895A;
+    --wood-dark: #7A5636;
+    --gold: #C9A961;
+
+    /* Acentos */
+    --accent: var(--blue);
+    --accent-hover: var(--blue-dark);
+
+    /* Sombras y radios */
+    --shadow: 0 4px 12px rgba(43, 24, 16, 0.08);
+    --shadow-hover: 0 8px 24px rgba(43, 24, 16, 0.15);
+    --radius: 16px;
+    --radius-small: 10px;
+
+    /* Tipografía */
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "Cascadia Code", "Consolas", "Courier New", monospace;
+
+    /* Transiciones */
+    --transition: 0.2s ease;
+}
+
+/* Modo oscuro (gremio de noche) */
+[data-theme="dark"] {
+    --bg: #0A0F1A;
+    --bg-secondary: #0F1724;
+    --surface: #1A1410;
+    --surface-hover: #241C15;
+    --text: #E8DCC0;
+    --text-muted: #B8A882;
+    --border: #3E3428;
+
+    --blue: #3D6F9E;
+    --blue-dark: #0F2338;
+    --blue-light: #7FB0DC;
+    --wood: #5C4033;
+    --wood-dark: #3A261A;
+    --gold: #E0C070;
+
+    --accent: var(--blue);
+    --accent-hover: var(--blue-light);
+
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* ===== Reset ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    transition: background var(--transition), color var(--transition);
+    min-height: 100vh;
+    padding: 0 20px 40px;
+}
+
+code {
+    font-family: var(--font-mono);
+    background: var(--bg-secondary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--blue-dark);
+}
+
+[data-theme="dark"] code {
+    color: var(--blue-light);
+}
+
+/* ===== Botón de tema ===== */
+.theme-toggle {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 100;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--shadow);
+    transition: all var(--transition);
+}
+
+.theme-toggle:hover {
+    background: var(--surface-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+/* ===== Header ===== */
+.main-header {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 80px 20px 40px;
+    text-align: center;
+}
+
+.header-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.header-logo {
+    width: 180px;
+    height: 180px;
+    object-fit: contain;
+    background: var(--surface);
+    border-radius: 50%;
+    padding: 20px;
+    border: 3px solid var(--gold);
+    box-shadow: var(--shadow);
+}
+
+.header-text h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--blue);
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+}
+
+.subtitle {
+    font-size: 1.3rem;
+    font-style: italic;
+    color: var(--gold);
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.tagline {
+    font-size: 1rem;
+    color: var(--text-muted);
+}
+
+/* ===== Navegación ===== */
+.main-nav {
+    max-width: 1100px;
+    margin: 0 auto 40px;
+    padding: 12px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 2px solid var(--border);
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    box-shadow: var(--shadow);
+}
+
+.main-nav a {
+    color: var(--text);
+    text-decoration: none;
+    padding: 8px 20px;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all var(--transition);
+}
+
+.main-nav a:hover,
+.main-nav a:focus {
+    background: var(--blue);
+    color: var(--surface);
+}
+
+/* ===== Secciones ===== */
+.section {
+    max-width: 1100px;
+    margin: 0 auto 60px;
+    padding: 40px 20px;
+}
+
+.section h2 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--blue);
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid var(--gold);
+    display: inline-block;
+}
+
+.section-intro {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    margin-bottom: 32px;
+    max-width: 800px;
+}
+
+/* ===== Sobre mí ===== */
+.about-content p {
+    margin-bottom: 16px;
+    font-size: 1.05rem;
+}
+
+.about-content h3 {
+    font-size: 1.3rem;
+    color: var(--wood-dark);
+    margin: 32px 0 16px;
+}
+
+[data-theme="dark"] .about-content h3 {
+    color: var(--wood);
+}
+
+.experience-list {
+    list-style: none;
+    padding: 0;
+}
+
+.experience-list li {
+    padding: 10px 0 10px 32px;
+    position: relative;
+    border-bottom: 1px dashed var(--border);
+}
+
+.experience-list li::before {
+    content: "◆";
+    position: absolute;
+    left: 8px;
+    color: var(--gold);
+    font-size: 0.9rem;
+}
+
+/* ===== Proyectos ===== */
+.projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+}
+
+.project-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    transition: all var(--transition);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.project-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--gold);
+}
+
+.project-card h3 {
+    font-size: 1.4rem;
+    color: var(--blue);
+    font-weight: 700;
+}
+
+.project-card .category-tag {
+    display: inline-block;
+    background: var(--blue-dark);
+    color: var(--surface);
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    align-self: flex-start;
+}
+
+.project-card .description {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    flex-grow: 1;
+}
+
+.project-card .meta {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    border-top: 1px dashed var(--border);
+    padding-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.project-card .meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.project-card .downloads-badge {
+    background: var(--gold);
+    color: var(--wood-dark);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.75rem;
+}
+
+.project-card .dedication {
+    font-style: italic;
+    font-size: 0.85rem;
+    color: var(--gold);
+    border-left: 3px solid var(--gold);
+    padding-left: 12px;
+}
+
+.loading-message,
+.error-message {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px;
+    font-style: italic;
+    grid-column: 1 / -1;
+}
+
+/* ===== Retos técnicos ===== */
+.challenges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+}
+
+.challenge-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-left: 5px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    transition: all var(--transition);
+}
+
+.challenge-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+    border-left-color: var(--blue);
+}
+
+.challenge-card h3 {
+    font-size: 1.15rem;
+    color: var(--blue);
+    margin-bottom: 16px;
+    font-weight: 700;
+}
+
+.challenge-card p {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.challenge-card p:last-child {
+    margin-bottom: 0;
+}
+
+.challenge-context {
+    font-style: italic;
+    border-left: 3px solid var(--border);
+    padding-left: 12px;
+}
+
+.challenge-solution,
+.challenge-lesson {
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-small);
+}
+
+.challenge-lesson {
+    border-left: 3px solid var(--gold);
+}
+
+/* ===== Open source ===== */
+.opensource-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.opensource-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    transition: all var(--transition);
+}
+
+.opensource-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--gold);
+}
+
+.opensource-card h3 {
+    font-size: 1.3rem;
+    color: var(--blue);
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+
+.opensource-detail {
+    display: inline-block;
+    background: var(--gold);
+    color: var(--wood-dark);
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.opensource-description {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.opensource-note {
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 16px;
+    border-top: 1px dashed var(--border);
+}
+
+/* ===== Blog ===== */
+.blog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.blog-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    transition: all var(--transition);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.blog-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--gold);
+}
+
+.blog-card h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.blog-card h3 a {
+    color: var(--blue);
+    text-decoration: none;
+    transition: color var(--transition);
+}
+
+.blog-card h3 a:hover {
+    color: var(--gold);
+    text-decoration: underline;
+}
+
+.blog-date {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.blog-excerpt {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    flex-grow: 1;
+}
+
+.blog-cta {
+    text-align: center;
+    margin-top: 32px;
+}
+
+/* ===== Placeholder ===== */
+.placeholder-box {
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 40px 24px;
+    text-align: center;
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 1rem;
+}
+
+/* ===== Servicios ===== */
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.service-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+}
+
+.service-card h3 {
+    font-size: 1.2rem;
+    color: var(--gold);
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+.service-card p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.process-list {
+    list-style: none;
+    counter-reset: step;
+    padding: 0;
+}
+
+.process-list li {
+    counter-increment: step;
+    padding: 8px 0 8px 36px;
+    position: relative;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.process-list li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 26px;
+    height: 26px;
+    background: var(--blue);
+    color: var(--surface);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.services-cta {
+    text-align: center;
+    margin-top: 32px;
+}
+
+.btn-primary,
+.btn-secondary {
+    display: inline-block;
+    padding: 14px 36px;
+    border-radius: 40px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1rem;
+    box-shadow: var(--shadow);
+    transition: all var(--transition);
+    border: 2px solid transparent;
+}
+
+.btn-primary {
+    background: var(--blue);
+    color: var(--surface);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background: var(--blue-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--gold);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--blue);
+    border-color: var(--blue);
+}
+
+.btn-secondary:hover,
+.btn-secondary:focus {
+    background: var(--blue);
+    color: var(--surface);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--gold);
+}
+
+/* ===== Contacto ===== */
+.contact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.contact-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-decoration: none;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--shadow);
+    transition: all var(--transition);
+    text-align: center;
+}
+
+.contact-card:hover,
+.contact-card:focus {
+    transform: translateY(-4px);
+    border-color: var(--gold);
+    box-shadow: var(--shadow-hover);
+}
+
+.contact-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.contact-card.disabled:hover {
+    transform: none;
+    border-color: var(--border);
+    box-shadow: var(--shadow);
+}
+
+.contact-icon {
+    font-size: 2rem;
+    margin-bottom: 4px;
+}
+
+.contact-label {
+    font-weight: 700;
+    color: var(--blue);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.contact-value {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    word-break: break-word;
+}
+
+.coming-soon-title {
+    font-size: 1.2rem;
+    color: var(--wood-dark);
+    margin: 32px 0 16px;
+    text-align: center;
+}
+
+[data-theme="dark"] .coming-soon-title {
+    color: var(--wood);
+}
+
+.contact-grid.coming-soon {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    margin-bottom: 0;
+}
+
+/* ===== Footer ===== */
+.main-footer {
+    max-width: 1100px;
+    margin: 60px auto 0;
+    padding: 32px 20px;
+    text-align: center;
+    border-top: 3px solid var(--gold);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.main-footer p {
+    margin-bottom: 8px;
+}
+
+.footer-tagline {
+    font-style: italic;
+    color: var(--gold);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 700px) {
+    body {
+        padding: 0 12px 24px;
+    }
+
+    .header-text h1 {
+        font-size: 2.2rem;
+    }
+
+    .subtitle {
+        font-size: 1.1rem;
+    }
+
+    .header-logo {
+        width: 140px;
+        height: 140px;
+    }
+
+    .section h2 {
+        font-size: 1.6rem;
+    }
+
+    .main-nav {
+        padding: 8px;
+    }
+
+    .main-nav a {
+        padding: 6px 14px;
+        font-size: 0.85rem;
+    }
+
+    .theme-toggle .theme-label {
+        display: none;
+    }
+
+    .theme-toggle {
+        padding: 8px 12px;
+    }
+
+    .challenges-grid,
+    .opensource-grid,
+    .blog-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===== Accesibilidad ===== */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+a:focus-visible,
+button:focus-visible {
+    outline: 3px solid var(--gold);
+    outline-offset: 2px;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--blue);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--blue-dark);
+}
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\genoma.py
+====================
+import os
+
+# 1. LISTA NEGRA AUTOMÁTICA
+FILTROS_SISTEMA = [
+    ".git", "__pycache__", "node_modules", ".venv", "venv", 
+    "env", ".vscode", ".idea", "migrations", "package-lock.json",
+    "yarn.lock", "dist", "build", ".next", ".nuxt", "estructura.txt"
+]
+
+# 2. EXTENSIONES DE ARCHIVOS BINARIOS A IGNORAR
+EXTENSIONES_BINARIAS = [
+    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".ico", ".svg",
+    ".mp3", ".mp4", ".wav", ".ogg", ".flac",
+    ".zip", ".rar", ".7z", ".tar", ".gz", ".apk", ".aab",
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+    ".exe", ".dll", ".so", ".dylib",
+    ".keystore", ".jks", ".p12", ".pfx",
+    ".ttf", ".otf", ".woff", ".woff2"
+]
+
+# 3. LISTA PERSONALIZABLE
+carpetas_personalizadas = []
+mostrar_archivos = True
+
+def es_archivo_binario(nombre_archivo: str) -> bool:
+    """Verifica si un archivo tiene extensión binaria."""
+    nombre_lower = nombre_archivo.lower()
+    for ext in EXTENSIONES_BINARIAS:
+        if nombre_lower.endswith(ext):
+            return True
+    return False
+
+def leer_contenido_archivo(ruta_archivo):
+    """Intenta leer el contenido de un archivo de texto. Si es binario, retorna un mensaje."""
+    # Verificar si es archivo binario por extensión
+    if es_archivo_binario(ruta_archivo):
+        return "[ARCHIVO BINARIO - CONTENIDO NO LEGIBLE]"
+    
+    try:
+        with open(ruta_archivo, "r", encoding="utf-8", errors="ignore") as f:
+            contenido = f.read()
+            # Si el archivo tiene caracteres nulos o es muy corto (posible binario), marcarlo
+            if "\x00" in contenido:
+                return "[ARCHIVO BINARIO - CONTENIDO NO LEGIBLE]"
+            return contenido
+    except Exception as e:
+        return f"[No se pudo leer: {e}]"
+
+def generar_arbol(ruta_dir, prefijo="", ignorar=None, contenido_archivos=None):
+    """
+    Genera el árbol ignorando carpetas clave y recolecta contenido de archivos.
+    """
+    if ignorar is None:
+        ignorar = []
+    if contenido_archivos is None:
+        contenido_archivos = []
+    
+    todos_los_filtros = set(FILTROS_SISTEMA + ignorar)
+    
+    try:
+        contenido_total = sorted(os.listdir(ruta_dir))
+        if not mostrar_archivos:
+            contenido_total = [f for f in contenido_total if os.path.isdir(os.path.join(ruta_dir, f))]
+
+        contenido = [f for f in contenido_total if f not in todos_los_filtros]
+    except PermissionError:
+        return [f"{prefijo}└── [Acceso Denegado]"], []
+
+    lineas = []
+    for i, elemento in enumerate(contenido):
+        ruta_completa = os.path.join(ruta_dir, elemento)
+        es_el_ultimo = (i == len(contenido) - 1)
+        
+        conector = "└── " if es_el_ultimo else "├── "
+        lineas.append(f"{prefijo}{conector}{elemento}")
+        
+        if os.path.isdir(ruta_completa):
+            nuevo_prefijo = prefijo + ("    " if es_el_ultimo else "│   ")
+            sub_lineas, sub_contenido = generar_arbol(ruta_completa, nuevo_prefijo, ignorar)
+            lineas.extend(sub_lineas)
+            contenido_archivos.extend(sub_contenido)
+        elif mostrar_archivos and os.path.isfile(ruta_completa):
+            # Extraer contenido solo si no es binario
+            texto = leer_contenido_archivo(ruta_completa)
+            contenido_archivos.append(f"\n{'='*20}\nARCHIVO: {ruta_completa}\n{'='*20}\n{texto}")
+            
+    return lineas, contenido_archivos
+
+def guardar_estructura():
+    directorio_actual = os.getcwd()
+    nombre_archivo = "estructura.txt"
+    
+    print(f"\n📂 Escaneando: {directorio_actual}...")
+    
+    arbol, contenido_files = generar_arbol(directorio_actual, ignorar=carpetas_personalizadas)
+    
+    resultado_final = [
+        f"ESTRUCTURA DEL PROYECTO: {directorio_actual}",
+        "=" * (len(directorio_actual) + 25),
+        "",
+        "."
+    ] + arbol + ["\n\n" + "="*50 + "\nCONTENIDO DE LOS ARCHIVOS\n" + "="*50] + contenido_files
+    
+    try:
+        with open(nombre_archivo, "w", encoding="utf-8") as f:
+            f.write("\n".join(resultado_final))
+        print(f"\n✅ Estructura y contenido guardados en '{nombre_archivo}'.")
+    except Exception as e:
+        print(f"\n❌ Error al guardar: {e}")
+
+def menu_principal():
+    global carpetas_personalizadas, mostrar_archivos
+    while True:
+        estado_archivos = "ON" if mostrar_archivos else "OFF"
+        print(f"""
+==========================================
+    GENERADOR DE ESTRUCTURA + CONTENIDO
+==========================================
+1. 🚀 Comenzar escaneo
+2. ⚙️ Agregar filtros extra
+3. 📄 Mostrar archivos: [{estado_archivos}]
+4. 🧹 Limpiar filtros
+5. ❌ Salir
+==========================================""")
+        
+        opcion = input("Selecciona una opción: ")
+        if opcion == "1":
+            guardar_estructura()
+        elif opcion == "2":
+            nueva = input("\nNombre a ignorar: ")
+            if nueva:
+                carpetas_personalizadas.extend([n.strip() for n in nueva.split(",")])
+                carpetas_personalizadas = list(set(carpetas_personalizadas))
+        elif opcion == "3":
+            mostrar_archivos = not mostrar_archivos
+        elif opcion == "5":
+            break
+
+if __name__ == "__main__":
+    menu_principal()
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\pull.ps1
+====================
+<#
+.SYNOPSIS
+    Descarga el Gist del historial de descargas y lo guarda en Download_Records/.
+.DESCRIPTION
+    Este script:
+    1. Verifica que estás en un repositorio git.
+    2. Verifica que pull.ps1 esté en el .gitignore. Si no, lo añade.
+    3. Verifica que la carpeta Download_Records/ esté en el .gitignore. Si no, la añade.
+    4. Crea la carpeta Download_Records/ si no existe.
+    5. Descarga el Gist con el historial de descargas.
+    6. Lo guarda con fecha y hora en el nombre, dentro de Download_Records/.
+    7. Guarda también una copia "latest" siempre actualizada.
+.NOTES
+    Para ejecutarlo: .\pull.ps1
+#>
+
+# ===== Colores para los mensajes =====
+function Write-Step    { Write-Host "[*] $args" -ForegroundColor Cyan }
+function Write-Success { Write-Host "[+] $args" -ForegroundColor Green }
+function Write-Warn    { Write-Host "[!] $args" -ForegroundColor Yellow }
+function Write-Err     { Write-Host "[X] $args" -ForegroundColor Red }
+
+# ===== Configuración =====
+$GistId      = "40391b1420b19d763eff10e35d1aec63"
+$ScriptName  = "pull.ps1"
+$FolderName  = "Download_Records"
+$Gitignore   = ".gitignore"
+
+# ===== Verificar que estamos en un repositorio git =====
+if (-not (Test-Path ".git")) {
+    Write-Err "No estas en un repositorio git. Abortando."
+    exit 1
+}
+
+# ===== Verificar que el .gitignore existe =====
+if (-not (Test-Path $Gitignore)) {
+    Write-Step "$Gitignore no existe. Creandolo..."
+    New-Item -ItemType File -Path $Gitignore -Force | Out-Null
+}
+
+$gitignoreContent = Get-Content $Gitignore -Raw
+
+# ===== Asegurar que pull.ps1 esta en el .gitignore =====
+$patternScript = "(?m)^\s*$([regex]::Escape($ScriptName))\s*$"
+if ($gitignoreContent -notmatch $patternScript) {
+    Write-Step "$ScriptName no esta en .gitignore. Anadiendolo..."
+    Add-Content -Path $Gitignore -Value "`n# Script de descarga de historial`n$ScriptName"
+    Write-Success "$ScriptName anadido a .gitignore."
+} else {
+    Write-Success "$ScriptName ya esta en .gitignore."
+}
+
+# ===== Asegurar que Download_Records/ esta en el .gitignore =====
+$patternFolder = "(?m)^\s*$([regex]::Escape($FolderName))/"
+if ($gitignoreContent -notmatch $patternFolder) {
+    Write-Step "$FolderName/ no esta en .gitignore. Anadiendolo..."
+    Add-Content -Path $Gitignore -Value "`n# Historial de descargas (local, no se sube)`n$FolderName/"
+    Write-Success "$FolderName/ anadido a .gitignore."
+} else {
+    Write-Success "$FolderName/ ya esta en .gitignore."
+}
+
+# ===== Crear la carpeta si no existe =====
+if (-not (Test-Path $FolderName)) {
+    Write-Step "Creando carpeta $FolderName/..."
+    New-Item -ItemType Directory -Path $FolderName -Force | Out-Null
+    Write-Success "Carpeta $FolderName/ creada."
+} else {
+    Write-Success "Carpeta $FolderName/ ya existe."
+}
+
+# ===== Descargar el Gist =====
+Write-Step "Descargando Gist $GistId ..."
+
+try {
+    $raw = gh gist view $GistId --raw 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($raw)) {
+        Write-Err "No se pudo descargar el Gist. Revisa que gh este autenticado."
+        exit 1
+    }
+} catch {
+    Write-Err "Error al ejecutar gh: $_"
+    exit 1
+}
+
+# ===== Validar que es JSON =====
+try {
+    $null = $raw | ConvertFrom-Json
+} catch {
+    Write-Err "El contenido del Gist no es JSON valido."
+    exit 1
+}
+
+# ===== Guardar con timestamp =====
+$timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
+$fileWithDate = Join-Path $FolderName "downloads_$timestamp.json"
+$fileLatest   = Join-Path $FolderName "downloads_latest.json"
+
+[System.IO.File]::WriteAllText(
+    (Join-Path (Get-Location).Path $fileWithDate),
+    $raw,
+    [System.Text.UTF8Encoding]::new($false)
+)
+Write-Success "Guardado: $fileWithDate"
+
+[System.IO.File]::WriteAllText(
+    (Join-Path (Get-Location).Path $fileLatest),
+    $raw,
+    [System.Text.UTF8Encoding]::new($false)
+)
+Write-Success "Guardado: $fileLatest (siempre actualizado)"
+
+Write-Host ""
+Write-Success "Historial descargado correctamente."
+Write-Host ""
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\push.ps1
+====================
+<#
+.SYNOPSIS
+    Automatiza el flujo de git: pull --rebase, add, commit y push.
+.DESCRIPTION
+    Este script:
+    1. Verifica que estás en un repositorio git.
+    2. Verifica que el propio script esté en el .gitignore. Si no, lo añade.
+    3. Hace git stash para guardar cambios temporales.
+    4. Hace git pull --rebase para traer cambios del remoto.
+    5. Restaura los cambios con git stash pop.
+    6. Si hay conflictos en docs/catalog.json, los resuelve automáticamente.
+    7. Pregunta el mensaje del commit.
+    8. Hace git add . y git commit.
+    9. Hace git push.
+   10. Si el push falla, reintenta con otro stash + pull + push.
+.NOTES
+    Para ejecutarlo: .\push.ps1
+#>
+
+# ===== Colores para los mensajes =====
+function Write-Step    { Write-Host "[*] $args" -ForegroundColor Cyan }
+function Write-Success { Write-Host "[+] $args" -ForegroundColor Green }
+function Write-Warn    { Write-Host "[!] $args" -ForegroundColor Yellow }
+function Write-Err     { Write-Host "[X] $args" -ForegroundColor Red }
+
+# ===== Verificar que estamos en un repositorio git =====
+if (-not (Test-Path ".git")) {
+    Write-Err "No estas en un repositorio git. Abortando."
+    exit 1
+}
+
+# ===== Verificar que push.ps1 este en el .gitignore =====
+$scriptName = "push.ps1"
+$gitignorePath = ".gitignore"
+
+if (-not (Test-Path $gitignorePath)) {
+    Write-Step "$gitignorePath no existe. Creandolo..."
+    New-Item -ItemType File -Path $gitignorePath -Force | Out-Null
+}
+
+$gitignoreContent = Get-Content $gitignorePath -Raw
+$pattern = "(?m)^\s*$([regex]::Escape($scriptName))\s*$"
+
+if ($gitignoreContent -notmatch $pattern) {
+    Write-Step "$scriptName no esta en .gitignore. Anadiendolo..."
+    Add-Content -Path $gitignorePath -Value "`n# Script de automatizacion de git`n$scriptName"
+    Write-Success "$scriptName anadido a .gitignore."
+} else {
+    Write-Success "$scriptName ya esta en .gitignore."
+}
+
+# ===== Paso 1: Ver si hay cambios sin commitear =====
+$hasChanges = $false
+$status = git status --short
+if (-not [string]::IsNullOrWhiteSpace($status)) {
+    $hasChanges = $true
+    Write-Host ""
+    Write-Host "Cambios detectados:" -ForegroundColor Cyan
+    Write-Host $status
+    Write-Host ""
+}
+
+# ===== Paso 2: git stash si hay cambios =====
+$stashed = $false
+if ($hasChanges) {
+    Write-Step "Guardando cambios temporalmente con git stash..."
+    git stash push -u -m "push.ps1 auto-stash"
+    if ($LASTEXITCODE -eq 0) {
+        $stashed = $true
+        Write-Success "Cambios guardados temporalmente."
+    } else {
+        Write-Warn "git stash fallo. Continuando sin stash."
+    }
+}
+
+# ===== Paso 3: git pull --rebase =====
+Write-Step "Haciendo git pull --rebase origin main..."
+git pull --rebase origin main
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Warn "git pull --rebase fallo. Puede haber conflictos."
+    $conflictFiles = git diff --name-only --diff-filter=U
+
+    if ($conflictFiles -match "docs/catalog.json") {
+        Write-Warn "Conflicto en docs/catalog.json. Resolviendo automaticamente..."
+        git checkout --ours docs/catalog.json
+        git add docs/catalog.json
+        git rebase --continue
+        if ($LASTEXITCODE -ne 0) {
+            Write-Err "No se pudo continuar el rebase."
+            if ($stashed) { Write-Warn "Tus cambios siguen guardados en el stash." }
+            exit 1
+        }
+        Write-Success "Conflicto resuelto."
+    } else {
+        Write-Err "Conflictos no automatizables:"
+        Write-Host $conflictFiles -ForegroundColor Red
+        if ($stashed) { Write-Warn "Tus cambios siguen guardados en el stash. Usa 'git stash pop' cuando resuelvas." }
+        exit 1
+    }
+} else {
+    Write-Success "Pull --rebase completado."
+}
+
+# ===== Paso 4: git stash pop si habia stash =====
+if ($stashed) {
+    Write-Step "Restaurando cambios guardados con git stash pop..."
+    git stash pop
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warn "git stash pop fallo. Revisa manualmente."
+        exit 1
+    }
+    Write-Success "Cambios restaurados."
+}
+
+# ===== Paso 5: Ver que hay para commitear =====
+$status = git status --short
+if ([string]::IsNullOrWhiteSpace($status)) {
+    Write-Warn "No hay cambios para commitear. Saliendo."
+    exit 0
+}
+
+Write-Host ""
+Write-Host "Cambios a commitear:" -ForegroundColor Cyan
+Write-Host $status
+Write-Host ""
+
+# ===== Paso 6: Pedir mensaje del commit =====
+$commitMsg = Read-Host "Escribe el mensaje del commit"
+
+if ([string]::IsNullOrWhiteSpace($commitMsg)) {
+    Write-Err "El mensaje no puede estar vacio. Abortando."
+    exit 1
+}
+
+# ===== Paso 7: git add + commit =====
+Write-Step "Haciendo git add . ..."
+git add .
+
+Write-Step "Haciendo git commit ..."
+git commit -m "$commitMsg"
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Err "git commit fallo. Abortando."
+    exit 1
+}
+
+Write-Success "Commit hecho."
+
+# ===== Paso 8: git push =====
+Write-Step "Haciendo git push ..."
+git push
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Warn "git push fallo. Reintentando con pull --rebase..."
+
+    git pull --rebase origin main
+
+    if ($LASTEXITCODE -ne 0) {
+        $conflictFiles = git diff --name-only --diff-filter=U
+        if ($conflictFiles -match "docs/catalog.json") {
+            Write-Warn "Conflicto en catalog.json. Resolviendo automaticamente..."
+            git checkout --ours docs/catalog.json
+            git add docs/catalog.json
+            git rebase --continue
+        } else {
+            Write-Err "Conflictos no automatizables."
+            exit 1
+        }
+    }
+
+    Write-Step "Reintentando git push ..."
+    git push
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err "El push fallo de nuevo. Revisa el estado del repositorio."
+        exit 1
+    }
+}
+
+Write-Host ""
+Write-Success "Push completado con exito."
+Write-Host ""
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\scripts\Generate-Catalog.ps1
+====================
+<#
+.SYNOPSIS
+    Genera docs/catalog.json a partir de las apps en apps/.
+.DESCRIPTION
+    Recorre cada subcarpeta de apps/, lee su info.md (frontmatter YAML),
+    busca el APK y el icon.png, calcula el SHA-256 del APK, y produce
+    un JSON con toda la información para el catálogo web y la futura app.
+
+    Las URLs de descarga apuntan a GitHub Releases, con tag <app-id>_v<version>.
+
+    Si ya existe un catalog.json previo, lo elimina antes de generar el nuevo.
+.NOTES
+    Requiere el módulo powershell-yaml:
+    Install-Module -Name powershell-yaml -Scope CurrentUser
+#>
+
+[CmdletBinding()]
+param(
+    [string]$AppsDir      = "apps",
+    [string]$OutputFile   = "docs/catalog.json",
+    [string]$ReleasesBase = "https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download",
+    [string]$SiteTitle    = "Traeume des Blauen",
+    [string]$Author       = "Dreamer",
+    [string]$Github       = "luisenriquepupo16-rgb",
+    [string]$Whatsapp     = "5354935996"
+)
+
+# --- Cargar módulo YAML ---
+Import-Module powershell-yaml -ErrorAction Stop
+
+# --- Función auxiliar: leer un archivo como UTF-8 sin BOM ---
+function Read-Utf8NoBom {
+    param([string]$Path)
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    return [System.Text.Encoding]::UTF8.GetString($bytes)
+}
+
+# --- Función auxiliar: parsear frontmatter de un info.md ---
+function Get-Frontmatter {
+    param([string]$Path)
+
+    $content = Read-Utf8NoBom -Path $Path
+
+    if ($content -notmatch '(?s)^\s*---\s*\r?\n(.*?)\r?\n---\s*\r?\n(.*)$') {
+        throw "El archivo $Path no tiene frontmatter YAML valido."
+    }
+
+    $yamlText = $Matches[1]
+    $bodyText = $Matches[2]
+
+    $meta = ConvertFrom-Yaml $yamlText
+    return @{
+        Meta = $meta
+        Body = $bodyText.Trim()
+    }
+}
+
+# --- Función auxiliar: extraer una sección del markdown ---
+function Get-MarkdownSection {
+    param(
+        [string]$Body,
+        [string]$Heading
+    )
+    $pattern = "(?s)##\s+$([regex]::Escape($Heading))\s*\r?\n(.*?)(?=\r?\n##\s|\z)"
+    if ($Body -match $pattern) {
+        return $Matches[1].Trim()
+    }
+    return $null
+}
+
+# --- Eliminar catalog.json previo si existe ---
+if (Test-Path $OutputFile) {
+    Remove-Item -Path $OutputFile -Force
+    Write-Host "catalog.json anterior eliminado." -ForegroundColor Yellow
+}
+
+# --- Preparar lista de apps ---
+$apps = @()
+$updatedAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+
+if (-not (Test-Path $AppsDir)) {
+    throw "No existe la carpeta '$AppsDir'."
+}
+
+$appFolders = Get-ChildItem -Path $AppsDir -Directory | Sort-Object Name
+
+foreach ($folder in $appFolders) {
+    $appId = $folder.Name
+    Write-Host "-> Procesando app: $appId" -ForegroundColor Cyan
+
+    $infoPath = Join-Path $folder.FullName "info.md"
+    if (-not (Test-Path $infoPath)) {
+        Write-Warning "  No se encontro info.md en $appId. Se omite."
+        continue
+    }
+
+    $parsed = Get-Frontmatter -Path $infoPath
+    $meta   = $parsed.Meta
+    $body   = $parsed.Body
+
+    # Buscar APK
+    $apkFile = Get-ChildItem -Path $folder.FullName -Filter "*.apk" | Select-Object -First 1
+    if (-not $apkFile) {
+        Write-Warning "  No se encontro APK en $appId. Se omite."
+        continue
+    }
+
+    # Calcular hash SHA-256 y tamano
+    $hash = (Get-FileHash -Path $apkFile.FullName -Algorithm SHA256).Hash.ToLower()
+    $sizeBytes = (Get-Item $apkFile.FullName).Length
+
+    # Icono (opcional)
+    $iconFile = Join-Path $folder.FullName "icon.png"
+    $hasIcon = Test-Path $iconFile
+
+    # Tag del release: <app-id>_v<version>
+    $tag = "${appId}_v$($meta.version)"
+
+    # URLs apuntando al release
+    $iconUrl = $null
+    if ($hasIcon) {
+        $iconUrl = "$ReleasesBase/$tag/icon.png"
+    }
+    $apkUrl = "$ReleasesBase/$tag/$($apkFile.Name)"
+
+    # Extraer secciones del cuerpo
+    $description = Get-MarkdownSection -Body $body -Heading "Description"
+    if (-not $description) { $description = "" }
+
+    $usage = Get-MarkdownSection -Body $body -Heading "Uso"
+
+    # Fecha de ultima modificacion del APK
+    $updatedAtApp = $apkFile.LastWriteTimeUtc.ToString("yyyy-MM-dd")
+
+    # Construir objeto
+    $appObj = [ordered]@{
+        id             = $appId
+        name           = $meta.name
+        version        = $meta.version
+        version_code   = $meta.version_code
+        package        = $meta.package
+        category       = $meta.category
+        technologies   = @($meta.technologies)
+        input_formats  = @($meta.input_formats)
+        output_formats = @($meta.output_formats)
+        min_android    = $meta.min_android
+        min_sdk        = $meta.min_sdk
+        target_sdk     = $meta.target_sdk
+        restrictions   = $meta.restrictions
+        dedication     = $meta.dedication
+        description    = $description
+        usage          = $usage
+        icon           = $iconUrl
+        apk            = [ordered]@{
+            filename   = $apkFile.Name
+            url        = $apkUrl
+            size_bytes = $sizeBytes
+            sha256     = $hash
+        }
+        tag            = $tag
+        updated_at     = $updatedAtApp
+    }
+
+    $apps += $appObj
+    $sizeMb = [math]::Round($sizeBytes / 1MB, 2)
+    Write-Host "   OK ($($apkFile.Name), $sizeMb MB, tag: $tag)" -ForegroundColor Green
+}
+
+# --- Construir objeto final ---
+$catalog = [ordered]@{
+    version      = 1
+    generated_at = $updatedAt
+    site         = [ordered]@{
+        title    = $SiteTitle
+        author   = $Author
+        github   = $Github
+        whatsapp = $Whatsapp
+    }
+    apps         = $apps
+}
+
+# --- Asegurar que existe la carpeta de salida ---
+$outputDir = Split-Path -Parent $OutputFile
+if ($outputDir -and -not (Test-Path $outputDir)) {
+    New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+}
+
+# --- Escribir JSON (UTF-8 sin BOM) ---
+$json = $catalog | ConvertTo-Json -Depth 10
+$fullOutputPath = Join-Path (Get-Location).Path $OutputFile
+[System.IO.File]::WriteAllText(
+    $fullOutputPath,
+    $json,
+    [System.Text.UTF8Encoding]::new($false)
+)
+
+Write-Host ""
+Write-Host "Catalogo generado: $OutputFile" -ForegroundColor Green
+Write-Host "Apps procesadas: $($apps.Count)" -ForegroundColor Green
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\scripts\gemini_chat.py
+====================
+import os
+import json
+import time
+import requests
+
+GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
+DISCORD_WEBHOOK = os.environ["DISCORD_WEBHOOK"]
+GIST_TOKEN = os.environ["GIST_TOKEN"]
+GIST_ID = os.environ["GIST_ID"]
+QUESTION = os.environ["QUESTION"]
+SOURCE = os.environ.get("SOURCE", "web")
+RESPONSE_TARGET = os.environ.get("RESPONSE_TARGET", "discord")
+CONVERSATION_ID = os.environ.get("CONVERSATION_ID", "default")
+
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={GEMINI_API_KEY}"
+
+MAX_HISTORIAL = 10
+MAX_CONVERSACIONES = 100
+MAX_DIAS = 30
+UMBRAL_GEMINI = 100
+
+
+def cargar_catalogo():
+    try:
+        response = requests.get(
+            "https://raw.githubusercontent.com/luisenriquepupo16-rgb/Traeume-des-Blauen/main/docs/catalog.json",
+            timeout=30
+        )
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        print(f"Error cargando catálogo: {e}")
+        return {}
+
+
+def leer_historial():
+    try:
+        r = requests.get(
+            f"https://api.github.com/gists/{GIST_ID}",
+            headers={"Authorization": f"Bearer {GIST_TOKEN}"},
+            timeout=30
+        )
+        content = r.json().get("files", {}).get("chat_history.json", {}).get("content", "{}")
+        try:
+            data = json.loads(content)
+            if isinstance(data, list):
+                return {"conversations": {"default": data}}
+            return data
+        except Exception:
+            return {"conversations": {}}
+    except Exception as e:
+        print(f"Error leyendo historial: {e}")
+        return {"conversations": {}}
+
+
+def guardar_historial(data):
+    try:
+        conversations = data.get("conversations", {})
+
+        if len(conversations) > MAX_CONVERSACIONES:
+            sorted_convs = sorted(
+                conversations.items(),
+                key=lambda x: x[1].get("last_activity", ""),
+                reverse=True
+            )
+            conversations = dict(sorted_convs[:MAX_CONVERSACIONES])
+
+        cutoff = time.time() - (MAX_DIAS * 86400)
+        for conv_id in list(conversations.keys()):
+            last = conversations[conv_id].get("last_activity", "")
+            try:
+                last_ts = time.mktime(time.strptime(last, "%Y-%m-%dT%H:%M:%SZ"))
+                if last_ts < cutoff:
+                    del conversations[conv_id]
+            except Exception:
+                pass
+
+        data["conversations"] = conversations
+
+        requests.patch(
+            f"https://api.github.com/gists/{GIST_ID}",
+            headers={"Authorization": f"Bearer {GIST_TOKEN}"},
+            json={
+                "files": {
+                    "chat_history.json": {
+                        "content": json.dumps(data, ensure_ascii=False, indent=2)
+                    }
+                }
+            },
+            timeout=30
+        )
+        print("Historial guardado en Gist.")
+    except Exception as e:
+        print(f"Error guardando historial: {e}")
+
+
+def obtener_historial_conversacion(data, conv_id):
+    conversations = data.get("conversations", {})
+    conv = conversations.get(conv_id, {})
+    messages = conv.get("messages", [])
+    return messages[-MAX_HISTORIAL:]
+
+
+def leer_uso_gemini():
+    try:
+        r = requests.get(
+            f"https://api.github.com/gists/{GIST_ID}",
+            headers={"Authorization": f"Bearer {GIST_TOKEN}"},
+            timeout=30
+        )
+        content = r.json().get("files", {}).get("gemini_usage.json", {}).get("content", "{}")
+        try:
+            return json.loads(content)
+        except Exception:
+            return {}
+    except Exception as e:
+        print(f"Error leyendo uso: {e}")
+        return {}
+
+
+def guardar_uso_gemini(uso):
+    try:
+        requests.patch(
+            f"https://api.github.com/gists/{GIST_ID}",
+            headers={"Authorization": f"Bearer {GIST_TOKEN}"},
+            json={
+                "files": {
+                    "gemini_usage.json": {
+                        "content": json.dumps(uso, ensure_ascii=False, indent=2)
+                    }
+                }
+            },
+            timeout=30
+        )
+    except Exception as e:
+        print(f"Error guardando uso: {e}")
+
+
+def registrar_uso():
+    uso = leer_uso_gemini()
+    hoy = time.strftime("%Y-%m-%d", time.gmtime())
+
+    if hoy not in uso:
+        uso[hoy] = 0
+    uso[hoy] += 1
+
+    if len(uso) > 30:
+        sorted_days = sorted(uso.keys(), reverse=True)[:30]
+        uso = {k: uso[k] for k in sorted_days}
+
+    guardar_uso_gemini(uso)
+
+    if uso[hoy] == UMBRAL_GEMINI:
+        enviar_discord(
+            f"⚠️ **Alerta de uso de Gemini**\n"
+            f"Hoy se han hecho **{UMBRAL_GEMINI}** peticiones a Gemini.\n"
+            f"Revisa si hay abuso."
+        )
+
+    return uso[hoy]
+
+
+def guardar_error(error_msg):
+    try:
+        r = requests.get(
+            f"https://api.github.com/gists/{GIST_ID}",
+            headers={"Authorization": f"Bearer {GIST_TOKEN}"},
+            timeout=30
+        )
+        content = r.json().get("files", {}).get("error_log.json", {}).get("content", "[]")
+        try:
+            errores = json.loads(content)
+        except Exception:
+            errores = []
+
+        errores.append({
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "source": SOURCE,
+            "conversation_id": CONVERSATION_ID,
+            "question": QUESTION,
+            "error": error_msg
+        })
+
+        errores = errores[-50:]
+
+        requests.patch(
+            f"https://api.github.com/gists/{GIST_ID}",
+            headers={"Authorization": f"Bearer {GIST_TOKEN}"},
+            json={
+                "files": {
+                    "error_log.json": {
+                        "content": json.dumps(errores, ensure_ascii=False, indent=2)
+                    }
+                }
+            },
+            timeout=30
+        )
+        print("Error guardado en Gist.")
+    except Exception as e:
+        print(f"Error guardando error: {e}")
+
+
+def construir_prompt(catalogo, pregunta, historial):
+    apps = catalogo.get("apps", [])
+    contexto = "Catálogo de aplicaciones disponibles:\n\n"
+
+    for app in apps:
+        contexto += f"- {app.get('name')} (v{app.get('version')}): {app.get('description')}\n"
+        contexto += f"  Categoría: {app.get('category')}\n"
+        contexto += f"  Tecnologías: {', '.join(app.get('technologies', []))}\n"
+        if app.get('dedication'):
+            contexto += f"  Dedicatoria: {app.get('dedication')}\n"
+        contexto += "\n"
+
+    historial_texto = ""
+    if historial:
+        historial_texto = "Historial de la conversación:\n"
+        for msg in historial:
+            historial_texto += f"Usuario: {msg.get('question', '')}\n"
+            historial_texto += f"Asistente: {msg.get('answer', '')}\n\n"
+
+    prompt = f"""Eres el asistente del catálogo Träume des Blauen, creado por Dreamer.
+
+REGLAS ESTRICTAS:
+1. Solo respondes preguntas sobre las aplicaciones del catálogo.
+2. Si te preguntan sobre política, contenido explícito, temas médicos,
+   o cualquier tema fuera del catálogo, responde amablemente que no puedes ayudar.
+3. Nunca inventes información. Si no sabes algo, dilo.
+4. Responde siempre en español, de forma clara y concisa.
+5. No des consejos legales, médicos ni financieros.
+
+{contexto}
+
+{historial_texto}
+
+Pregunta actual del usuario: {pregunta}
+
+Respuesta:"""
+
+    return prompt
+
+
+def llamar_gemini(prompt, max_reintentos=3):
+    for intento in range(max_reintentos):
+        try:
+            response = requests.post(
+                GEMINI_URL,
+                headers={"Content-Type": "application/json"},
+                json={
+                    "contents": [{
+                        "parts": [{"text": prompt}]
+                    }]
+                },
+                timeout=60
+            )
+
+            data = response.json()
+
+            if data.get("error", {}).get("code") == 503:
+                espera = (intento + 1) * 5
+                print(f"Modelo saturado. Reintentando en {espera}s...")
+                time.sleep(espera)
+                continue
+
+            candidates = data.get("candidates", [])
+            if candidates:
+                parts = candidates[0].get("content", {}).get("parts", [])
+                if parts:
+                    return parts[0].get("text", "Sin respuesta")
+
+            print(f"Error de Gemini: {data.get('error', {}).get('message', 'Desconocido')}")
+            time.sleep(3)
+
+        except Exception as e:
+            print(f"Error en intento {intento + 1}: {e}")
+            time.sleep(3)
+
+    return "Lo siento, no puedo responder en este momento. Intenta de nuevo en unos minutos."
+
+
+def enviar_discord(mensaje):
+    payload = {"content": mensaje}
+    try:
+        requests.post(DISCORD_WEBHOOK, json=payload, timeout=30)
+        print("Respuesta enviada a Discord.")
+    except Exception as e:
+        print(f"Error enviando a Discord: {e}")
+
+
+def main():
+    print(f"Pregunta de {SOURCE} (conversación: {CONVERSATION_ID}): {QUESTION}")
+
+    catalogo = cargar_catalogo()
+    data = leer_historial()
+    historial = obtener_historial_conversacion(data, CONVERSATION_ID)
+
+    prompt = construir_prompt(catalogo, QUESTION, historial)
+    respuesta = llamar_gemini(prompt)
+
+    print(f"Respuesta: {respuesta}")
+
+    uso_hoy = registrar_uso()
+    print(f"Peticiones a Gemini hoy: {uso_hoy}")
+
+    if RESPONSE_TARGET == "discord":
+        enviar_discord(f"Pregunta de {SOURCE}:\n{QUESTION}\n\nRespuesta:\n{respuesta}")
+
+    conversations = data.get("conversations", {})
+    if CONVERSATION_ID not in conversations:
+        conversations[CONVERSATION_ID] = {"messages": [], "last_activity": ""}
+
+    conversations[CONVERSATION_ID]["messages"].append({
+        "question": QUESTION,
+        "answer": respuesta,
+        "source": SOURCE,
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    })
+
+    conversations[CONVERSATION_ID]["messages"] = conversations[CONVERSATION_ID]["messages"][-MAX_HISTORIAL:]
+    conversations[CONVERSATION_ID]["last_activity"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+    data["conversations"] = conversations
+    guardar_historial(data)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        print(f"ERROR FATAL: {error_msg}")
+        guardar_error(error_msg)
+        enviar_discord(f"❌ **Error en el chatbot**\n{error_msg}\n\nRevisa el Gist para más detalles.")
+        raise
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\scripts\remotive_jobs.py
+====================
+import os
+import hashlib
+import requests
+
+DISCORD_WEBHOOK = os.environ["DISCORD_WEBHOOK_URL"]
+GIST_TOKEN = os.environ["GIST_TOKEN"]
+GIST_ID = os.environ["GIST_ID"]
+
+PALABRAS_FUERTES = [
+    "android", "kotlin", "flutter",
+]
+
+PALABRAS_DEBILES = [
+    "mobile", "developer", "engineer", "programmer",
+]
+
+PALABRAS_EXCLUIR = [
+    "senior", "lead", "principal", "5+ years",
+    "sales", "marketing", "recruiter", "power bi",
+    "webflow", "django", "fullstack", "full stack",
+    "data scientist", "devops", "qa ",
+]
+
+API_URL = "https://remotive.com/api/remote-jobs"
+
+
+def leer_hashes():
+    response = requests.get(
+        f"https://api.github.com/gists/{GIST_ID}",
+        headers={"Authorization": f"Bearer {GIST_TOKEN}"}
+    )
+    if response.status_code != 200:
+        return {"telegram": [], "remotive": []}
+
+    content = response.json().get("files", {}).get("jobs_sent.json", {}).get("content", "{}")
+    try:
+        import json
+        data = json.loads(content)
+        return {
+            "telegram": data.get("telegram", []),
+            "remotive": data.get("remotive", [])
+        }
+    except Exception:
+        return {"telegram": [], "remotive": []}
+
+
+def guardar_hashes(data):
+    import json
+    body = {
+        "files": {
+            "jobs_sent.json": {
+                "content": json.dumps(data, indent=2)
+            }
+        }
+    }
+    requests.patch(
+        f"https://api.github.com/gists/{GIST_ID}",
+        headers={"Authorization": f"Bearer {GIST_TOKEN}"},
+        json=body
+    )
+
+
+def hash_oferta(job):
+    texto = f"{job.get('title', '')}{job.get('company_name', '')}{job.get('url', '')}"
+    return hashlib.sha256(texto.encode("utf-8")).hexdigest()[:16]
+
+
+def fetch_jobs():
+    response = requests.get(API_URL, timeout=30)
+    response.raise_for_status()
+    return response.json().get("jobs", [])
+
+
+def filtrar_jobs(jobs, hashes_remotive):
+    relevantes = []
+    for job in jobs:
+        titulo = job.get("title", "").lower()
+        descripcion = job.get("description", "").lower()
+        tags = " ".join(job.get("tags", [])).lower()
+        texto = f"{titulo} {descripcion} {tags}"
+
+        if any(e in texto for e in PALABRAS_EXCLUIR):
+            continue
+
+        es_relevante = False
+        if any(k in texto for k in PALABRAS_FUERTES):
+            es_relevante = True
+        elif any(k in texto for k in PALABRAS_DEBILES) and "remote" in texto:
+            es_relevante = True
+
+        if not es_relevante:
+            continue
+
+        h = hash_oferta(job)
+        if h in hashes_remotive:
+            continue
+
+        relevantes.append((job, h))
+
+    return relevantes
+
+
+def enviar_discord(relevantes):
+    if not relevantes:
+        print("Sin ofertas nuevas relevantes.")
+        return
+
+    cuerpo = ""
+    for job, _ in relevantes[:5]:
+        titulo = job.get("title", "Sin título")
+        empresa = job.get("company_name", "Empresa desconocida")
+        url = job.get("url", "")
+        salario = job.get("salary", "No especificado")
+        ubicacion = job.get("candidate_required_location", "No especificada")
+
+        cuerpo += f"\n**{titulo}**\n"
+        cuerpo += f"Empresa: {empresa}\n"
+        cuerpo += f"Ubicación: {ubicacion}\n"
+        if salario:
+            cuerpo += f"Salario: {salario}\n"
+        cuerpo += f"[Ver oferta]({url})\n"
+
+    aviso = f"Ofertas remotas en Remotive:\n{cuerpo}"
+    payload = {"content": aviso}
+    requests.post(DISCORD_WEBHOOK, json=payload)
+    print(f"Enviadas {len(relevantes[:5])} ofertas nuevas a Discord.")
+
+
+def main():
+    print("Consultando Remotive...")
+    jobs = fetch_jobs()
+    print(f"Total de trabajos: {len(jobs)}")
+
+    hashes = leer_hashes()
+    hashes_remotive = set(hashes.get("remotive", []))
+
+    relevantes = filtrar_jobs(jobs, hashes_remotive)
+    print(f"Relevantes nuevas: {len(relevantes)}")
+
+    enviar_discord(relevantes)
+
+    # Guardar hashes nuevos
+    for _, h in relevantes[:5]:
+        hashes_remotive.add(h)
+
+    hashes["remotive"] = list(hashes_remotive)
+    guardar_hashes(hashes)
+
+
+if __name__ == "__main__":
+    main()
+
+====================
+ARCHIVO: D:\Blue_Dragon\Kin\Traeume-des-Blauen\scripts\telegram_jobs.py
+====================
+import os
+import asyncio
+import hashlib
+import requests
+from telethon import TelegramClient
+from telethon.sessions import StringSession
+
+API_ID = int(os.environ["TELEGRAM_API_ID"])
+API_HASH = os.environ["TELEGRAM_API_HASH"]
+SESSION = os.environ["TELEGRAM_SESSION"]
+DISCORD_WEBHOOK = os.environ["DISCORD_WEBHOOK_URL"]
+GIST_TOKEN = os.environ["GIST_TOKEN"]
+GIST_ID = os.environ["GIST_ID"]
+
+GRUPO = "cubanjobs"
+
+PALABRAS_FUERTES = [
+    "android", "kotlin", "flutter", "móvil", "mobile",
+]
+
+PALABRAS_DEBILES = [
+    "desarrollador", "developer", "programador", "backend", "frontend",
+]
+
+PALABRAS_EXCLUIR = [
+    "presencial", "senior", "5 años", "inglés avanzado",
+    "power bi", "webflow", "django", "fullstack", "full stack",
+    "ventas", "sales", "marketing", "recruiter", "remesas",
+]
+
+
+def leer_hashes():
+    """Lee los hashes ya enviados desde el Gist."""
+    response = requests.get(
+        f"https://api.github.com/gists/{GIST_ID}",
+        headers={"Authorization": f"Bearer {GIST_TOKEN}"}
+    )
+    if response.status_code != 200:
+        return {"telegram": [], "remotive": []}
+
+    content = response.json().get("files", {}).get("jobs_sent.json", {}).get("content", "{}")
+    try:
+        import json
+        data = json.loads(content)
+        return {
+            "telegram": data.get("telegram", []),
+            "remotive": data.get("remotive", [])
+        }
+    except Exception:
+        return {"telegram": [], "remotive": []}
+
+
+def guardar_hashes(data):
+    """Guarda los hashes en el Gist."""
+    import json
+    body = {
+        "files": {
+            "jobs_sent.json": {
+                "content": json.dumps(data, indent=2)
+            }
+        }
+    }
+    requests.patch(
+        f"https://api.github.com/gists/{GIST_ID}",
+        headers={"Authorization": f"Bearer {GIST_TOKEN}"},
+        json=body
+    )
+
+
+def hash_oferta(texto):
+    """Genera un hash único para una oferta."""
+    return hashlib.sha256(texto.encode("utf-8")).hexdigest()[:16]
+
+
+async def main():
+    hashes = leer_hashes()
+    hashes_telegram = set(hashes.get("telegram", []))
+
+    async with TelegramClient(StringSession(SESSION), API_ID, API_HASH) as client:
+        mensajes_relevantes = []
+
+        async for msg in client.iter_messages(GRUPO, limit=50):
+            if not msg.text:
+                continue
+
+            texto = msg.text.lower()
+
+            if any(e in texto for e in PALABRAS_EXCLUIR):
+                continue
+
+            es_relevante = False
+            if any(k in texto for k in PALABRAS_FUERTES):
+                es_relevante = True
+            elif any(k in texto for k in PALABRAS_DEBILES) and \
+                 any(r in texto for r in ["remoto", "remote"]):
+                es_relevante = True
+
+            if not es_relevante:
+                continue
+
+            h = hash_oferta(msg.text)
+            if h in hashes_telegram:
+                continue
+
+            mensajes_relevantes.append((msg.text, h))
+
+        if not mensajes_relevantes:
+            print("Sin ofertas nuevas relevantes.")
+            return
+
+        cuerpo = "\n\n---\n\n".join(m[0] for m in mensajes_relevantes[:5])
+        aviso = f"Ofertas relevantes en CubanTech Jobs:\n\n{cuerpo}"
+
+        payload = {"content": aviso}
+        requests.post(DISCORD_WEBHOOK, json=payload)
+        print(f"Enviadas {len(mensajes_relevantes[:5])} ofertas nuevas a Discord.")
+
+        # Guardar hashes nuevos
+        for _, h in mensajes_relevantes[:5]:
+            hashes_telegram.add(h)
+
+        hashes["telegram"] = list(hashes_telegram)
+        guardar_hashes(hashes)
+
+
+asyncio.run(main())

@@ -299,6 +299,49 @@
     <p class="footer-tagline">Aplicaciones sencillas, útiles y hechas con claridad.</p>
 </footer>
 
+<!-- ============================================================ -->
+<!-- CHAT FLOTANTE                                                -->
+<!-- ============================================================ -->
+
+<!-- Burbuja flotante -->
+<button class="chat-bubble" id="chatBubble" aria-label="Abrir chat">
+    <span class="chat-bubble-icon">💬</span>
+</button>
+
+<!-- Panel de chat -->
+<div class="chat-panel" id="chatPanel" aria-hidden="true">
+    <header class="chat-header">
+        <div class="chat-header-title">
+            <img src="assets/logo_header.png" alt="" class="chat-header-avatar">
+            <div>
+                <strong>Asistente</strong>
+                <small>Träume des Blauen</small>
+            </div>
+        </div>
+        <div class="chat-header-actions">
+            <button class="chat-action" id="chatClear" aria-label="Limpiar conversación" title="Limpiar conversación">🗑️</button>
+            <button class="chat-action" id="chatClose" aria-label="Cerrar chat" title="Cerrar chat">✕</button>
+        </div>
+    </header>
+
+    <div class="chat-messages" id="chatMessages" role="log" aria-live="polite">
+        <!-- Los mensajes se renderizan aquí dinámicamente -->
+    </div>
+
+    <form class="chat-input-form" id="chatForm">
+        <input
+            type="text"
+            id="chatInput"
+            class="chat-input"
+            placeholder="Escribe tu pregunta…"
+            autocomplete="off"
+            maxlength="500"
+            aria-label="Escribe tu pregunta"
+        >
+        <button type="submit" class="chat-send" id="chatSend" aria-label="Enviar">➤</button>
+    </form>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>
