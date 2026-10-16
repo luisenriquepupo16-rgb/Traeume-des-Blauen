@@ -43,20 +43,7 @@ jobs:
 
           HISTORY_TEXT=$(echo "$HISTORY_JSON" | jq -r '.[] | "- \(.date): \(.summary)"' | head -7)
 
-          PROMPT="Eres un asistente que escribe un diario personal para Dreamer, un desarrollador Android de Cuba. Tu tono es cercano, cálido, sin exagerar. No uses emojis excesivos.
-
-Actividad de hoy ($TODAY):
-- Commits: $COMMITS
-- Releases: $RELEASES
-- Issues nuevos: $ISSUES
-- Repos: $REPOS
-
-Historial de días anteriores (para contexto):
-$HISTORY_TEXT
-
-Escribe un párrafo corto (3-5 frases) narrando lo que hizo Dreamer hoy, teniendo en cuenta el contexto de los días anteriores. Si hubo racha, menciónala. Si rompió racha, anímalo. No inventes datos que no estén arriba.
-
-Narrativa:"
+          PROMPT="Eres un asistente que escribe un diario personal para Dreamer, un desarrollador Android de Cuba. Tu tono es cercano, calido, sin exagerar. No uses emojis excesivos.\n\nActividad de hoy ($TODAY):\n- Commits: $COMMITS\n- Releases: $RELEASES\n- Issues nuevos: $ISSUES\n- Repos: $REPOS\n\nHistorial de dias anteriores (para contexto):\n$HISTORY_TEXT\n\nEscribe un parrafo corto (3-5 frases) narrando lo que hizo Dreamer hoy, teniendo en cuenta el contexto de los dias anteriores. Si hubo racha, mencionarla. Si rompio racha, animalo. No inventes datos que no esten arriba.\n\nNarrativa:"
 
           GEMINI_RESPONSE=$(curl -s -X POST \
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}" \
