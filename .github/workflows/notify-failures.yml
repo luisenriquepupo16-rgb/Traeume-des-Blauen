@@ -1,8 +1,8 @@
-name: Workflow Failure Alert
+name: Notify Failures
 
 on:
   workflow_run:
-    workflows: ["Gemini Chat", "Telegram Jobs Monitor", "Remotive Jobs Monitor", "Download Notifier"]
+    workflows: ["Chat Gemini", "Jobs Telegram", "Jobs Remotive", "Notify Downloads"]
     types: [completed]
 
 jobs:

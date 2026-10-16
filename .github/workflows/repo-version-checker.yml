@@ -1,4 +1,4 @@
-name: Version Checker
+name: Repo Version Checker
 
 on:
   push:

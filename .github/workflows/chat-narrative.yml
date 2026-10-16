@@ -1,0 +1,83 @@
+name: Chat Narrative
+
+on:
+  schedule:
+    - cron: '30 23 * * *'
+  workflow_dispatch:
+
+jobs:
+  narrative:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Generar narrativa con Gemini
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+        run: |
+          set -euo pipefail
+
+          TODAY=$(date -u +"%Y-%m-%d")
+
+          DIARY_JSON=$(curl -s -H "Authorization: Bearer $GIST_TOKEN" \
+            "https://api.github.com/gists/$GIST_ID" \
+            | jq -r '.files["dev_diary_data.json"].content // "{}"')
+
+          COMMITS=$(echo "$DIARY_JSON" | jq -r '.commits // 0')
+          RELEASES=$(echo "$DIARY_JSON" | jq -r '.releases // 0')
+          ISSUES=$(echo "$DIARY_JSON" | jq -r '.issues // 0')
+          REPOS=$(echo "$DIARY_JSON" | jq -r '.repos // ""')
+
+          if [ "$COMMITS" -eq 0 ] && [ "$RELEASES" -eq 0 ] && [ "$ISSUES" -eq 0 ]; then
+            echo "Sin actividad hoy. No se genera narrativa."
+            exit 0
+          fi
+
+          HISTORY_JSON=$(curl -s -H "Authorization: Bearer $GIST_TOKEN" \
+            "https://api.github.com/gists/$GIST_ID" \
+            | jq -r '.files["diary_history.json"].content // "[]"')
+
+          HISTORY_TEXT=$(echo "$HISTORY_JSON" | jq -r '.[] | "- \(.date): \(.summary)"' | head -7)
+
+          PROMPT="Eres un asistente que escribe un diario personal para Dreamer, un desarrollador Android de Cuba. Tu tono es cercano, cálido, sin exagerar. No uses emojis excesivos.
+
+Actividad de hoy ($TODAY):
+- Commits: $COMMITS
+- Releases: $RELEASES
+- Issues nuevos: $ISSUES
+- Repos: $REPOS
+
+Historial de días anteriores (para contexto):
+$HISTORY_TEXT
+
+Escribe un párrafo corto (3-5 frases) narrando lo que hizo Dreamer hoy, teniendo en cuenta el contexto de los días anteriores. Si hubo racha, menciónala. Si rompió racha, anímalo. No inventes datos que no estén arriba.
+
+Narrativa:"
+
+          GEMINI_RESPONSE=$(curl -s -X POST \
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg prompt "$PROMPT" '{contents: [{parts: [{text: $prompt}]}]}')")
+
+          NARRATIVE=$(echo "$GEMINI_RESPONSE" | jq -r '.candidates[0].content.parts[0].text // "No se pudo generar narrativa."')
+
+          NEW_HISTORY=$(echo "$HISTORY_JSON" | jq \
+            --arg date "$TODAY" \
+            --arg summary "$NARRATIVE" \
+            '. + [{date: $date, summary: $summary}] | .[-7:]')
+
+          curl -s -X PATCH \
+            -H "Authorization: Bearer $GIST_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg content "$NEW_HISTORY" '{files: {"diary_history.json": {content: $content}}}')" \
+            "https://api.github.com/gists/$GIST_ID" > /dev/null
+
+          MSG="📖 **Diario narrativo — ${TODAY}**\n\n${NARRATIVE}"
+
+          PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')
+          curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$DISCORD_WEBHOOK"
+          echo "Narrativa enviada."

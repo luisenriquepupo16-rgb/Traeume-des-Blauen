@@ -1,4 +1,4 @@
-name: Release Apps and Build Catalog
+name: Release Catalog
 
 on:
   push:

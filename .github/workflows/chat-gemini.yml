@@ -1,4 +1,4 @@
-name: Gemini Chat
+name: Chat Gemini
 
 on:
   workflow_dispatch:

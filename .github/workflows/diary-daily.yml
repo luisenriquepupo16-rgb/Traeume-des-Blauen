@@ -1,8 +1,8 @@
-name: Dev Diary
+name: Diary Daily
 
 on:
   schedule:
-    - cron: '0 23 * * *'   # 23:00 UTC = 6 PM Cuba
+    - cron: '0 23 * * *'
   workflow_dispatch:
 
 jobs:
@@ -17,11 +17,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
           OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
 
-          # Repositorios a revisar
           REPOS=(
             "Traeume-des-Blauen"
             "nexiria"
@@ -43,10 +44,6 @@ jobs:
           ISSUES_NUEVOS=0
           ERRORES=""
 
-          # Función: hace la petición y devuelve un número entero seguro.
-          # Si la respuesta no es un array, devuelve 0 y registra el error.
-          # Ignora los 404, porque la API los devuelve cuando un repo no
-          # tiene releases ni issues, y eso no es un error real.
           contar_elementos() {
             local url="$1"
             local etiqueta="$2"
@@ -61,7 +58,6 @@ jobs:
             cuerpo=$(echo "$respuesta" | sed '$d')
 
             if [ "$codigo" = "404" ]; then
-              # El recurso no existe o no está disponible. No es error.
               echo "0"
               return
             fi
@@ -87,12 +83,10 @@ jobs:
           for REPO in "${REPOS[@]}"; do
             echo "→ Revisando $REPO"
 
-            # 1. Commits en las últimas 24h
             COMMITS=$(contar_elementos \
               "https://api.github.com/repos/$OWNER/$REPO/commits?since=$SINCE&per_page=100" \
               "$REPO commits")
 
-            # 2. Releases publicados en las últimas 24h
             RELEASES_RESP=$(curl -s -w "\n%{http_code}" \
               -H "Authorization: Bearer $GH_TOKEN" \
               -H "Accept: application/vnd.github+json" \
@@ -109,7 +103,6 @@ jobs:
               ERRORES="${ERRORES}\n• $REPO releases: HTTP ${RELEASES_CODE}"
             fi
 
-            # 3. Issues creados en las últimas 24h
             ISSUES_RESP=$(curl -s -w "\n%{http_code}" \
               -H "Authorization: Bearer $GH_TOKEN" \
               -H "Accept: application/vnd.github+json" \
@@ -127,7 +120,6 @@ jobs:
               ERRORES="${ERRORES}\n• $REPO issues: HTTP ${ISSUES_CODE}"
             fi
 
-            # Acumular
             TOTAL_COMMITS=$((TOTAL_COMMITS + COMMITS))
             RELEASES_HOY=$((RELEASES_HOY + RELEASES))
             ISSUES_NUEVOS=$((ISSUES_NUEVOS + ISSUES))
@@ -138,10 +130,58 @@ jobs:
           done
 
           echo "Total commits: $TOTAL_COMMITS"
-          echo "Total releases: $RELEASES_HOY"
-          echo "Total issues: $ISSUES_NUEVOS"
 
-          # Construir mensaje
+          # ===== LÓGICA DE RACHA =====
+          STREAK_JSON=$(curl -s -H "Authorization: Bearer $GIST_TOKEN" \
+            "https://api.github.com/gists/$GIST_ID" \
+            | jq -r '.files["streak.json"].content // "{\"current\":0,\"last_date\":\"\"}"')
+
+          STREAK_CURRENT=$(echo "$STREAK_JSON" | jq -r '.current // 0')
+          STREAK_LAST=$(echo "$STREAK_JSON" | jq -r '.last_date // ""')
+
+          YESTERDAY=$(date -u -d "yesterday" +"%Y-%m-%d")
+
+          if [ "$TOTAL_COMMITS" -gt 0 ]; then
+            if [ "$STREAK_LAST" = "$YESTERDAY" ]; then
+              STREAK_CURRENT=$((STREAK_CURRENT + 1))
+            elif [ "$STREAK_LAST" = "$TODAY" ]; then
+              # Ya se contó hoy, no sumar de nuevo
+              :
+            else
+              STREAK_CURRENT=1
+            fi
+          else
+            STREAK_CURRENT=0
+          fi
+
+          STREAK_LAST="$TODAY"
+
+          STREAK_PAYLOAD=$(jq -n \
+            --argjson current "$STREAK_CURRENT" \
+            --arg last "$STREAK_LAST" \
+            '{current: $current, last_date: $last}')
+
+          curl -s -X PATCH \
+            -H "Authorization: Bearer $GIST_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg content "$STREAK_PAYLOAD" '{files: {"streak.json": {content: $content}}}')" \
+            "https://api.github.com/gists/$GIST_ID" > /dev/null
+
+          # ===== GUARDAR DATOS PARA EL NARRATIVO =====
+          DIARY_PAYLOAD=$(jq -n \
+            --argjson commits "$TOTAL_COMMITS" \
+            --argjson releases "$RELEASES_HOY" \
+            --argjson issues "$ISSUES_NUEVOS" \
+            --arg repos "$REPOS_ACTIVOS" \
+            '{commits: $commits, releases: $releases, issues: $issues, repos: $repos}')
+
+          curl -s -X PATCH \
+            -H "Authorization: Bearer $GIST_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg content "$DIARY_PAYLOAD" '{files: {"dev_diary_data.json": {content: $content}}}')" \
+            "https://api.github.com/gists/$GIST_ID" > /dev/null
+
+          # ===== CONSTRUIR MENSAJE =====
           if [ "$TOTAL_COMMITS" -gt 0 ] || [ "$RELEASES_HOY" -gt 0 ] || [ "$ISSUES_NUEVOS" -gt 0 ]; then
             MSG="📓 **Diario del desarrollador — ${TODAY}**\n"
             MSG="${MSG}• **${TOTAL_COMMITS}** commit(s) en total"
@@ -166,11 +206,21 @@ jobs:
             MSG="📓 **Diario del desarrollador — ${TODAY}**\n\n${COMENTARIOS[$RANDOM_INDEX]}"
           fi
 
-          # Avisar de errores reales de API si los hubo
+          # Añadir racha al mensaje
+          if [ "$STREAK_CURRENT" -gt 0 ]; then
+            if [ "$STREAK_CURRENT" -eq 1 ]; then
+              MSG="${MSG}\n\n🔥 Racha: **1 día**. ¡A por más!"
+            else
+              MSG="${MSG}\n\n🔥 Racha: **${STREAK_CURRENT} días seguidos**. ¡No la rompas!"
+            fi
+          else
+            MSG="${MSG}\n\n💔 Racha rota. Vuelve a empezar."
+          fi
+
           if [ -n "$ERRORES" ]; then
             MSG="${MSG}\n\n⚠️ **Avisos de la API:**${ERRORES}"
           fi
 
           PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')
           curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$DISCORD_WEBHOOK"
-          echo "Diario enviado.*"
+          echo "Diario enviado."

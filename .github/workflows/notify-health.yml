@@ -1,0 +1,66 @@
+name: Notify Health
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+
+    steps:
+      - name: Calcular salud de workflows
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          TODAY=$(date -u +"%Y-%m-%d")
+
+          WORKFLOWS=$(gh workflow list --json name,path --repo "$REPO" 2>/dev/null || echo "[]")
+
+          if [ "$WORKFLOWS" = "[]" ] || [ -z "$WORKFLOWS" ]; then
+            echo "No se pudieron listar workflows."
+            exit 1
+          fi
+
+          MSG="📊 **Salud de workflows — ${TODAY}**\n\n"
+
+          WORKFLOW_NAMES=$(echo "$WORKFLOWS" | jq -r '.[].name')
+
+          while IFS= read -r WF_NAME; do
+            [ -z "$WF_NAME" ] && continue
+
+            RUNS=$(gh run list --workflow "$WF_NAME" --limit 10 \
+              --json conclusion,status --repo "$REPO" 2>/dev/null || echo "[]")
+
+            TOTAL=$(echo "$RUNS" | jq 'length')
+            if [ "$TOTAL" -eq 0 ]; then
+              continue
+            fi
+
+            SUCCESS=$(echo "$RUNS" | jq '[.[] | select(.conclusion == "success")] | length')
+            FAILURE=$(echo "$RUNS" | jq '[.[] | select(.conclusion == "failure")] | length')
+
+            if [ "$FAILURE" -eq 0 ]; then
+              EMOJI="✅"
+            elif [ "$SUCCESS" -gt "$FAILURE" ]; then
+              EMOJI="⚠️"
+            else
+              EMOJI="❌"
+            fi
+
+            PCT=$((SUCCESS * 100 / TOTAL))
+            MSG="${MSG}${EMOJI} **${WF_NAME}**: ${SUCCESS}/${TOTAL} (${PCT}%)\n"
+
+          done <<< "$WORKFLOW_NAMES"
+
+          PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')
+          curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$DISCORD_WEBHOOK"
+          echo "Salud de workflows enviada."

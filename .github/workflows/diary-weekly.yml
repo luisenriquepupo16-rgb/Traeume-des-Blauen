@@ -1,0 +1,64 @@
+name: Diary Weekly
+
+on:
+  schedule:
+    - cron: '0 22 * * 0'
+  workflow_dispatch:
+
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Listar repos con actividad semanal
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+
+          REPOS=(
+            "Traeume-des-Blauen"
+            "nexiria"
+            "yozora-store-android"
+            "Dibujama_Android"
+            "dibujama"
+            "converty"
+            "baby-medina-android"
+          )
+
+          TODAY=$(date -u +"%Y-%m-%d")
+          SINCE=$(date -u -d "7 days ago" +"%Y-%m-%dT%H:%M:%SZ")
+
+          REPOS_ACTIVOS=""
+
+          for REPO in "${REPOS[@]}"; do
+            RESP=$(curl -s -w "\n%{http_code}" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$OWNER/$REPO/commits?since=$SINCE&per_page=100" || echo -e "\n000")
+
+            CODE=$(echo "$RESP" | tail -n1)
+            BODY=$(echo "$RESP" | sed '$d')
+
+            if [ "$CODE" = "200" ]; then
+              COUNT=$(echo "$BODY" | jq 'length' 2>/dev/null || echo "0")
+              if [ "$COUNT" -gt 0 ]; then
+                REPOS_ACTIVOS="${REPOS_ACTIVOS}\n• \`${REPO}\`"
+              fi
+            fi
+          done
+
+          if [ -n "$REPOS_ACTIVOS" ]; then
+            MSG="📚 **Resumen semanal — ${TODAY}**\n\n"
+            MSG="${MSG}Esta semana trabajaste en:${REPOS_ACTIVOS}"
+          else
+            MSG="📚 **Resumen semanal — ${TODAY}**\n\nEsta semana no hubo actividad en ningún repo."
+          fi
+
+          PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')
+          curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$DISCORD_WEBHOOK"
+          echo "Resumen semanal enviado."
