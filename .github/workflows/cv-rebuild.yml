@@ -60,10 +60,11 @@ jobs:
           $content = [System.IO.File]::ReadAllBytes("cv/cv-cuba.pdf")
           $boundary = [System.Guid]::NewGuid().ToString()
           $LF = "`r`n"
-          
+
           $ms = New-Object System.IO.MemoryStream
-          $writer = New-Object System.IO.StreamWriter($ms, [System.Text.Encoding]::UTF8)
+          $writer = New-Object System.IO.StreamWriter($ms, [System.Text.UTF8Encoding]::new($false))
           $writer.NewLine = $LF
+
           $writer.WriteLine("--$boundary")
           $writer.WriteLine("Content-Disposition: form-data; name=`"content`"")
           $writer.WriteLine("")
@@ -73,15 +74,16 @@ jobs:
           $writer.WriteLine("Content-Type: application/pdf")
           $writer.WriteLine("")
           $writer.Flush()
-          
+
           $ms.Write($content, 0, $content.Length)
-          
+          $ms.Flush()
+
           $writer.WriteLine("")
           $writer.WriteLine("--$boundary--")
           $writer.Flush()
           $writer.Dispose()
-          
+
           $bytes = $ms.ToArray()
           $ms.Dispose()
-          
+
           Invoke-RestMethod -Uri $webhook -Method Post -ContentType "multipart/form-data; boundary=$boundary" -Body $bytes
