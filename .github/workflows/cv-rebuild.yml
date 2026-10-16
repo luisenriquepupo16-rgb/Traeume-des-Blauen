@@ -19,10 +19,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Instalar Pandoc y wkhtmltopdf
+      - name: Instalar Pandoc
         shell: pwsh
         run: |
-          choco install pandoc wkhtmltopdf -y --no-progress
+          choco install pandoc -y --no-progress
+
+      - name: Verificar Chrome
+        shell: pwsh
+        run: |
+          $chromePath = "C:\Program Files\Google\Chrome\Application\chrome.exe"
+          if (-not (Test-Path $chromePath)) {
+            Write-Host "Chrome no encontrado. Instalando..."
+            choco install googlechrome -y --no-progress
+          } else {
+            Write-Host "Chrome encontrado en $chromePath"
+          }
 
       - name: Generar CVs
         shell: pwsh

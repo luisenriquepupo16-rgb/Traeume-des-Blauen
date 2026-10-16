@@ -9,10 +9,10 @@ $ErrorActionPreference = "Stop"
 # Rutas
 $cvDataPath = Join-Path $RepoRoot "cv/cv-data.json"
 $catalogPath = Join-Path $RepoRoot "docs/catalog.json"
-$blogPath = Join-Path $RepoRoot "docs/content/blog.json"
 $opensourcePath = Join-Path $RepoRoot "docs/content/opensource.json"
 $outputDirPath = Join-Path $RepoRoot $OutputDir
 $fotoPath = Join-Path $outputDirPath "perfil.jpg"
+$chromePath = "C:\Program Files\Google\Chrome\Application\chrome.exe"
 
 if (-not (Test-Path $outputDirPath)) {
     New-Item -ItemType Directory -Path $outputDirPath -Force | Out-Null
@@ -21,7 +21,6 @@ if (-not (Test-Path $outputDirPath)) {
 # Leer datos
 $data = Get-Content $cvDataPath -Raw | ConvertFrom-Json
 $catalog = Get-Content $catalogPath -Raw | ConvertFrom-Json
-$blog = Get-Content $blogPath -Raw | ConvertFrom-Json
 $opensource = Get-Content $opensourcePath -Raw | ConvertFrom-Json
 
 # Reemplazar placeholders con variables de entorno
@@ -75,7 +74,7 @@ $cvEs = @"
 
 **Desarrollador Android | Kotlin · Jetpack Compose**
 
-📍 $($data.ubicacion_publica) · 📧 $($data.email) · 🌐 [Portafolio]($($data.portfolio))
+Cuba · $($data.email) · [Portafolio]($($data.portfolio))
 
 ---
 
@@ -142,7 +141,7 @@ $cvEn = @"
 
 **Android Developer | Kotlin · Jetpack Compose**
 
-📍 $($data.ubicacion_publica) · 📧 $($data.email) · 🌐 [Portfolio]($($data.portfolio))
+Cuba · $($data.email) · [Portfolio]($($data.portfolio))
 
 ---
 
@@ -204,31 +203,34 @@ $idiomasMd
 Set-Content -Path (Join-Path $outputDirPath "cv.en.md") -Value $cvEn -Encoding UTF8
 
 # ===== CV CUBA (formal) =====
-$referenciasMd = ""
-if ($referenciasJson -and $referenciasJson -ne "[]") {
-    $refs = $referenciasJson | ConvertFrom-Json
-    foreach ($ref in $refs) {
-        $referenciasMd += "- **$($ref.nombre)**: $($ref.relacion). Teléfono: $($ref.telefono)`n"
-    }
-}
-
 $logrosPre = ""
 foreach ($logro in $data.preuniversitario.logros) {
     $logrosPre += "- $logro`n"
 }
 
 $cvCuba = @"
-# CURRÍCULUM VITAE
+<div class="titulo-cv">CURRÍCULUM VITAE</div>
+
+<div class="foto-cv">
+<img src="perfil.jpg" alt="Foto" />
+</div>
 
 ## I. DATOS GENERALES
 
 1. **Nombres y Apellidos:** $nombreLegal
+
 2. **Sexo:** M
+
 3. **Edad:** $edad años
+
 4. **Fecha de Nacimiento:** $fechaNacimiento
+
 5. **Centro de Estudio:** $($data.educacion.universidad). $facultad.
+
 6. **Cargo:** Estudiante
+
 7. **Dirección Particular:** $direccion
+
 8. **Teléfono:** Móvil: $telefono
 
 ---
@@ -236,8 +238,11 @@ $cvCuba = @"
 ## FORMACIÓN
 
 - Cursando el cuarto año de la carrera $($data.educacion.carrera) en la $($data.educacion.universidad). Actualmente en desarrollo de tesis de grado.
+
 - Graduado de enseñanza media-superior en el $($data.preuniversitario.nombre) en el año $($data.preuniversitario.año).
+
 $logrosPre
+
 - Graduado de la enseñanza media en la $($data.media).
 
 ---
@@ -269,56 +274,33 @@ $proyectosMd
 
 Set-Content -Path (Join-Path $outputDirPath "cv-cuba.md") -Value $cvCuba -Encoding UTF8
 
-# ===== GENERAR PDFs =====
+# ===== CSS =====
 
-function Convert-MdToPdf {
-    param(
-        [string]$MdPath,
-        [string]$PdfPath,
-        [string]$CssPath,
-        [string]$FotoPath = ""
-    )
-
-    $args = @(
-        $MdPath,
-        "-o", $PdfPath,
-        "--pdf-engine=wkhtmltopdf",
-        "--css=$CssPath"
-    )
-
-    if ($FotoPath -and (Test-Path $FotoPath)) {
-        $args += "--metadata=foto:$FotoPath"
-    }
-
-    & pandoc @args
-
-    if ($LASTEXITCODE -ne 0) {
-        throw "Pandoc falló al generar $PdfPath"
-    }
-}
-
-# CSS para los CVs públicos (estilo moderno)
 $cssPublicPath = Join-Path $outputDirPath "cv-public.css"
 $cssPublic = @"
+@page {
+    size: A4;
+    margin: 2cm;
+}
 body {
     font-family: 'Segoe UI', Arial, sans-serif;
     font-size: 11pt;
-    line-height: 1.5;
+    line-height: 1.6;
     color: #333;
-    margin: 2cm;
 }
 h1 {
     color: #2E5A88;
-    font-size: 20pt;
-    border-bottom: 2px solid #C9A961;
-    padding-bottom: 5px;
+    font-size: 22pt;
+    border-bottom: 3px solid #C9A961;
+    padding-bottom: 8px;
+    margin-bottom: 15px;
 }
 h2 {
     color: #2E5A88;
-    font-size: 14pt;
-    margin-top: 20px;
+    font-size: 15pt;
+    margin-top: 25px;
     border-bottom: 1px solid #ddd;
-    padding-bottom: 3px;
+    padding-bottom: 4px;
 }
 h3 {
     color: #5C4033;
@@ -333,14 +315,22 @@ code {
 }
 ul {
     margin-left: 20px;
+    margin-bottom: 10px;
+}
+li {
+    margin-bottom: 6px;
 }
 strong {
     color: #2E5A88;
 }
+hr {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 15px 0;
+}
 "@
 Set-Content -Path $cssPublicPath -Value $cssPublic -Encoding UTF8
 
-# CSS para el CV cubano (estilo formal, patrón de la amiga)
 $cssCubaPath = Join-Path $outputDirPath "cv-cuba.css"
 $cssCuba = @"
 @page {
@@ -350,44 +340,95 @@ $cssCuba = @"
 body {
     font-family: 'Times New Roman', Times, serif;
     font-size: 12pt;
-    line-height: 1.4;
+    line-height: 1.5;
     color: #000;
 }
-h1 {
+.titulo-cv {
     text-align: center;
     font-size: 18pt;
     font-weight: bold;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
+    margin-top: 10px;
+}
+.foto-cv {
+    float: right;
+    width: 3cm;
+    margin: 0 0 15px 15px;
+}
+.foto-cv img {
+    width: 100%;
+    border: 1px solid #ccc;
 }
 h2 {
     font-size: 13pt;
     font-weight: bold;
     text-transform: uppercase;
     margin-top: 25px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #000;
+    padding-bottom: 3px;
 }
 p, li {
     text-align: justify;
+    margin-bottom: 6px;
 }
 ul {
     margin-left: 20px;
     list-style-type: disc;
 }
-.foto-cv {
-    float: right;
-    width: 3cm;
-    height: auto;
-    margin: 0 0 15px 15px;
-    border: 1px solid #ccc;
+ol {
+    margin-left: 20px;
+}
+ol li {
+    margin-bottom: 4px;
+}
+hr {
+    border: none;
+    border-top: 1px solid #ccc;
+    margin: 15px 0;
 }
 "@
 Set-Content -Path $cssCubaPath -Value $cssCuba -Encoding UTF8
 
-# Generar PDFs de los CVs públicos
+# ===== GENERAR PDFs con Chrome headless =====
+
+function Convert-MdToPdf {
+    param(
+        [string]$MdPath,
+        [string]$PdfPath,
+        [string]$CssPath
+    )
+
+    $htmlPath = $PdfPath -replace '\.pdf$', '.html'
+
+    # Pandoc: md -> html
+    & pandoc $MdPath -o $htmlPath --standalone --css=$CssPath --metadata title="CV"
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Pandoc falló al generar $htmlPath"
+    }
+
+    # Chrome headless: html -> pdf
+    $absoluteHtml = (Resolve-Path $htmlPath).Path
+    $absolutePdf = Join-Path (Get-Location).Path $PdfPath
+
+    & $chromePath --headless --disable-gpu --no-pdf-header-footer --print-to-pdf="$absolutePdf" "file:///$($absoluteHtml -replace '\\', '/')"
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Chrome falló al generar $PdfPath"
+    }
+
+    # Borrar el HTML intermedio
+    Remove-Item $htmlPath -Force -ErrorAction SilentlyContinue
+}
+
+# Generar PDFs públicos
 Convert-MdToPdf -MdPath (Join-Path $outputDirPath "cv.es.md") -PdfPath (Join-Path $outputDirPath "cv.es.pdf") -CssPath $cssPublicPath
 Convert-MdToPdf -MdPath (Join-Path $outputDirPath "cv.en.md") -PdfPath (Join-Path $outputDirPath "cv.en.pdf") -CssPath $cssPublicPath
 
-# Generar PDF del CV cubano (con foto si existe)
-Convert-MdToPdf -MdPath (Join-Path $outputDirPath "cv-cuba.md") -PdfPath (Join-Path $outputDirPath "cv-cuba.pdf") -CssPath $cssCubaPath -FotoPath $fotoPath
+# Generar PDF cubano (con foto si existe)
+# Nota: la foto se referencia en el md como "perfil.jpg" (relativo)
+# Chrome la buscará en el mismo directorio que el HTML generado
+Convert-MdToPdf -MdPath (Join-Path $outputDirPath "cv-cuba.md") -PdfPath (Join-Path $outputDirPath "cv-cuba.pdf") -CssPath $cssCubaPath
 
 Write-Host "CVs generados en $outputDirPath"
