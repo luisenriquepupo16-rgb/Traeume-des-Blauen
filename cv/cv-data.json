@@ -1,0 +1,46 @@
+{
+  "nombre_publico": "Dreamer (Luisi)",
+  "nombre_legal": "{{CV_NOMBRE_COMPLETO}}",
+  "email": "luisenriquepupo16@gmail.com",
+  "github": "luisenriquepupo16-rgb",
+  "whatsapp": "5354935996",
+  "portfolio": "https://luisenriquepupo16-rgb.github.io/Traeume-des-Blauen",
+  "ubicacion_publica": "Cuba",
+  "edad": "{{CV_EDAD}}",
+  "fecha_nacimiento": "{{CV_FECHA_NACIMIENTO}}",
+  "direccion": "{{CV_DIRECCION}}",
+  "telefono": "{{CV_TELEFONO}}",
+  "facultad": "{{CV_FACULTAD}}",
+  "referencias": "{{CV_REFERENCIAS}}",
+  "educacion": {
+    "universidad": "Universidad de Las Tunas",
+    "carrera": "Ingeniería Informática",
+    "año": "4to año (último), en curso",
+    "tesis": "Aplicación móvil para personas con discapacidad visual: reconocimiento de billetes cubanos mediante visión artificial y retroalimentación auditiva."
+  },
+  "preuniversitario": {
+    "nombre": "Instituto Preuniversitario de Ciencias Exactas \"Luis Urquiza Jorge\"",
+    "año": "2024",
+    "logros": [
+      "Medalla de plata en el ICPC 2023",
+      "Ingreso directo a la carrera sin prueba de ingreso"
+    ]
+  },
+  "media": "ESU \"Wenceslao Rivero\"",
+  "idiomas": [
+    {"idioma": "Español", "nivel": "Nativo"},
+    {"idioma": "Inglés", "nivel": "B1 (certificado)"},
+    {"idioma": "Italiano", "nivel": "En estudio (nivel usuario)"}
+  ],
+  "aptitudes": [
+    "Razonamiento lógico-matemático, desarrollado a través de la programación competitiva.",
+    "Adaptabilidad a distintos entornos y tecnologías.",
+    "Capacidad de análisis y resolución de problemas mediante enfoques no convencionales.",
+    "Identificación proactiva de problemas y propuesta de soluciones.",
+    "Observación y escucha activa, con disposición a la crítica constructiva.",
+    "Búsqueda autónoma de información y aprendizaje continuo. Capacidad para explorar y comprender tecnologías desconocidas hasta alcanzar un dominio funcional.",
+    "Desarrollo de aplicaciones Android con Kotlin y Jetpack Compose.",
+    "Automatización de procesos con GitHub Actions y CI/CD.",
+    "Conocimientos de programación en C++, Java y Python."
+  ]
+}

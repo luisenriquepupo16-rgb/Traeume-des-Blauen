@@ -1,0 +1,64 @@
+name: CV Rebuild
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'docs/catalog.json'
+      - 'docs/content/*.json'
+      - 'cv/cv-data.json'
+
+jobs:
+  rebuild:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generar CVs
+        shell: pwsh
+        env:
+          CV_NOMBRE_COMPLETO: ${{ secrets.CV_NOMBRE_COMPLETO }}
+          CV_EDAD: ${{ secrets.CV_EDAD }}
+          CV_FECHA_NACIMIENTO: ${{ secrets.CV_FECHA_NACIMIENTO }}
+          CV_TELEFONO: ${{ secrets.CV_TELEFONO }}
+          CV_DIRECCION: ${{ secrets.CV_DIRECCION }}
+          CV_FACULTAD: ${{ secrets.CV_FACULTAD }}
+          CV_REFERENCIAS: ${{ secrets.CV_REFERENCIAS }}
+        run: |
+          ./scripts/generate-cv.ps1
+
+      - name: Subir CVs español e inglés
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add cv/cv.es.md cv/cv.en.md
+          if (git diff --cached --quiet) {
+            Write-Host "Sin cambios en CVs públicos"
+          } else {
+            git commit -m "chore: regenerar CVs [skip ci]"
+            git push
+          }
+
+      - name: Enviar CV cubano a Discord
+        shell: pwsh
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          $content = Get-Content cv/cv-cuba.md -Raw
+          $boundary = [System.Guid]::NewGuid().ToString()
+          $LF = "`r`n"
+          $body = "--$boundary$LF"
+          $body += "Content-Disposition: form-data; name=`"content`"$LF$LF"
+          $body += "CV cubano regenerado: $((Get-Date).ToString('yyyy-MM-dd'))$LF"
+          $body += "--$boundary$LF"
+          $body += "Content-Disposition: form-data; name=`"file`"; filename=`"cv-cuba.md`"$LF"
+          $body += "Content-Type: text/markdown$LF$LF"
+          $body += $content + $LF
+          $body += "--$boundary--$LF"
+          $bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
+          Invoke-RestMethod -Uri $DISCORD_WEBHOOK -Method Post -ContentType "multipart/form-data; boundary=$boundary" -Body $bytes
