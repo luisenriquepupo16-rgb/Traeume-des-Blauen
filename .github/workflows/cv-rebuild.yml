@@ -50,6 +50,7 @@ jobs:
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
+          $webhook = $env:DISCORD_WEBHOOK
           $content = Get-Content cv/cv-cuba.md -Raw
           $boundary = [System.Guid]::NewGuid().ToString()
           $LF = "`r`n"
@@ -62,4 +63,4 @@ jobs:
           $body += $content + $LF
           $body += "--$boundary--$LF"
           $bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
-          Invoke-RestMethod -Uri $DISCORD_WEBHOOK -Method Post -ContentType "multipart/form-data; boundary=$boundary" -Body $bytes
+          Invoke-RestMethod -Uri $webhook -Method Post -ContentType "multipart/form-data; boundary=$boundary" -Body $bytes
