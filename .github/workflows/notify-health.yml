@@ -30,7 +30,7 @@ jobs:
             exit 1
           fi
 
-          MSG="📊 **Salud de workflows — ${TODAY}**\n\n"
+          MSG=$(printf '📊 **Salud de workflows — %s**\n' "$TODAY")
 
           WORKFLOW_NAMES=$(echo "$WORKFLOWS" | jq -r '.[].name')
 
@@ -45,19 +45,24 @@ jobs:
               continue
             fi
 
+            COMPLETED=$(echo "$RUNS" | jq '[.[] | select(.status == "completed")] | length')
+            if [ "$COMPLETED" -eq 0 ]; then
+              continue
+            fi
+
             SUCCESS=$(echo "$RUNS" | jq '[.[] | select(.conclusion == "success")] | length')
             FAILURE=$(echo "$RUNS" | jq '[.[] | select(.conclusion == "failure")] | length')
 
-            if [ "$FAILURE" -eq 0 ]; then
+            if [ "$SUCCESS" -eq "$COMPLETED" ]; then
               EMOJI="✅"
-            elif [ "$SUCCESS" -gt "$FAILURE" ]; then
-              EMOJI="⚠️"
-            else
+            elif [ "$SUCCESS" -eq 0 ]; then
               EMOJI="❌"
+            else
+              EMOJI="⚠️"
             fi
 
-            PCT=$((SUCCESS * 100 / TOTAL))
-            MSG="${MSG}${EMOJI} **${WF_NAME}**: ${SUCCESS}/${TOTAL} (${PCT}%)\n"
+            PCT=$((SUCCESS * 100 / COMPLETED))
+            MSG+=$(printf '\n%s **%s**: %d/%d (%d%%)' "$EMOJI" "$WF_NAME" "$SUCCESS" "$COMPLETED" "$PCT")
 
           done <<< "$WORKFLOW_NAMES"
 

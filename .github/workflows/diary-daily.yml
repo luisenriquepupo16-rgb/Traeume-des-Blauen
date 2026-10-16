@@ -131,7 +131,7 @@ jobs:
 
           echo "Total commits: $TOTAL_COMMITS"
 
-          # ===== LÓGICA DE RACHA =====
+          # LÓGICA DE RACHA
           STREAK_JSON=$(curl -s -H "Authorization: Bearer $GIST_TOKEN" \
             "https://api.github.com/gists/$GIST_ID" \
             | jq -r '.files["streak.json"].content // "{\"current\":0,\"last_date\":\"\"}"')
@@ -145,7 +145,6 @@ jobs:
             if [ "$STREAK_LAST" = "$YESTERDAY" ]; then
               STREAK_CURRENT=$((STREAK_CURRENT + 1))
             elif [ "$STREAK_LAST" = "$TODAY" ]; then
-              # Ya se contó hoy, no sumar de nuevo
               :
             else
               STREAK_CURRENT=1
@@ -167,7 +166,7 @@ jobs:
             -d "$(jq -n --arg content "$STREAK_PAYLOAD" '{files: {"streak.json": {content: $content}}}')" \
             "https://api.github.com/gists/$GIST_ID" > /dev/null
 
-          # ===== GUARDAR DATOS PARA EL NARRATIVO =====
+          # GUARDAR DATOS PARA EL NARRATIVO
           DIARY_PAYLOAD=$(jq -n \
             --argjson commits "$TOTAL_COMMITS" \
             --argjson releases "$RELEASES_HOY" \
@@ -181,20 +180,20 @@ jobs:
             -d "$(jq -n --arg content "$DIARY_PAYLOAD" '{files: {"dev_diary_data.json": {content: $content}}}')" \
             "https://api.github.com/gists/$GIST_ID" > /dev/null
 
-          # ===== CONSTRUIR MENSAJE =====
+          # CONSTRUIR MENSAJE con printf (saltos reales)
           if [ "$TOTAL_COMMITS" -gt 0 ] || [ "$RELEASES_HOY" -gt 0 ] || [ "$ISSUES_NUEVOS" -gt 0 ]; then
-            MSG="📓 **Diario del desarrollador — ${TODAY}**\n"
-            MSG="${MSG}• **${TOTAL_COMMITS}** commit(s) en total"
+            MSG=$(printf '📓 **Diario del desarrollador — %s**\n' "$TODAY")
+            MSG+=$(printf '• **%d** commit(s) en total' "$TOTAL_COMMITS")
             if [ -n "$REPOS_ACTIVOS" ]; then
-              MSG="${MSG}\n• Repos con actividad:${REPOS_ACTIVOS}"
+              MSG+=$(printf '\n• Repos con actividad:%b' "$REPOS_ACTIVOS")
             fi
             if [ "$RELEASES_HOY" -gt 0 ]; then
-              MSG="${MSG}\n• **${RELEASES_HOY}** release(s) publicado(s)"
+              MSG+=$(printf '\n• **%d** release(s) publicado(s)' "$RELEASES_HOY")
             fi
             if [ "$ISSUES_NUEVOS" -gt 0 ]; then
-              MSG="${MSG}\n• **${ISSUES_NUEVOS}** issue(s) nuevo(s)"
+              MSG+=$(printf '\n• **%d** issue(s) nuevo(s)' "$ISSUES_NUEVOS")
             fi
-            MSG="${MSG}\n\nMañana más. 💙"
+            MSG+=$(printf '\n\nMañana más. 💙')
           else
             COMENTARIOS=(
               "Hoy no hubo movimiento. Supongo que descansaste. Bien por ti. 💙"
@@ -203,22 +202,21 @@ jobs:
               "Sin actividad hoy. Mañana será otro día. 💙"
             )
             RANDOM_INDEX=$((RANDOM % ${#COMENTARIOS[@]}))
-            MSG="📓 **Diario del desarrollador — ${TODAY}**\n\n${COMENTARIOS[$RANDOM_INDEX]}"
+            MSG=$(printf '📓 **Diario del desarrollador — %s**\n\n%s' "$TODAY" "${COMENTARIOS[$RANDOM_INDEX]}")
           fi
 
-          # Añadir racha al mensaje
           if [ "$STREAK_CURRENT" -gt 0 ]; then
             if [ "$STREAK_CURRENT" -eq 1 ]; then
-              MSG="${MSG}\n\n🔥 Racha: **1 día**. ¡A por más!"
+              MSG+=$(printf '\n\n🔥 Racha: **1 día**. ¡A por más!')
             else
-              MSG="${MSG}\n\n🔥 Racha: **${STREAK_CURRENT} días seguidos**. ¡No la rompas!"
+              MSG+=$(printf '\n\n🔥 Racha: **%d días seguidos**. ¡No la rompas!' "$STREAK_CURRENT")
             fi
           else
-            MSG="${MSG}\n\n💔 Racha rota. Vuelve a empezar."
+            MSG+=$(printf '\n\n💔 Racha rota. Vuelve a empezar.')
           fi
 
           if [ -n "$ERRORES" ]; then
-            MSG="${MSG}\n\n⚠️ **Avisos de la API:**${ERRORES}"
+            MSG+=$(printf '\n\n⚠️ **Avisos de la API:**%b' "$ERRORES")
           fi
 
           PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')

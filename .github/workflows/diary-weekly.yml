@@ -53,10 +53,9 @@ jobs:
           done
 
           if [ -n "$REPOS_ACTIVOS" ]; then
-            MSG="📚 **Resumen semanal — ${TODAY}**\n\n"
-            MSG="${MSG}Esta semana trabajaste en:${REPOS_ACTIVOS}"
+            MSG=$(printf '📚 **Resumen semanal — %s**\n\nEsta semana trabajaste en:%b' "$TODAY" "$REPOS_ACTIVOS")
           else
-            MSG="📚 **Resumen semanal — ${TODAY}**\n\nEsta semana no hubo actividad en ningún repo."
+            MSG=$(printf '📚 **Resumen semanal — %s**\n\nEsta semana no hubo actividad en ningún repo.' "$TODAY")
           fi
 
           PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')
