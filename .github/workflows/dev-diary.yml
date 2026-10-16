@@ -19,9 +19,9 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
           OWNER: ${{ github.repository_owner }}
         run: |
-          set -e
+          set -euo pipefail
 
-          # Repositorios a revisar (edita esta lista si quieres)
+          # Repositorios a revisar
           REPOS=(
             "Traeume-des-Blauen"
             "nexiria"
@@ -35,34 +35,104 @@ jobs:
           TODAY=$(date -u +"%Y-%m-%d")
           SINCE=$(date -u -d "24 hours ago" +"%Y-%m-%dT%H:%M:%SZ")
 
+          echo "Consultando actividad desde $SINCE"
+
           TOTAL_COMMITS=0
           REPOS_ACTIVOS=""
           RELEASES_HOY=0
           ISSUES_NUEVOS=0
+          ERRORES=""
 
-          for REPO in "${REPOS[@]}"; do
-            # Commits de las últimas 24h
-            COMMITS=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
-              "https://api.github.com/repos/$OWNER/$REPO/commits?since=$SINCE&per_page=100" \
-              | jq 'length' 2>/dev/null || echo "0")
+          # Función: hace la petición y devuelve un número entero seguro.
+          # Si la respuesta no es un array, devuelve 0 y registra el error.
+          contar_elementos() {
+            local url="$1"
+            local etiqueta="$2"
+            local respuesta
 
-            if [ "$COMMITS" -gt 0 ] 2>/dev/null; then
-              TOTAL_COMMITS=$((TOTAL_COMMITS + COMMITS))
-              REPOS_ACTIVOS="${REPOS_ACTIVOS}\n• \`${REPO}\`: ${COMMITS} commit(s)"
+            respuesta=$(curl -s -w "\n%{http_code}" -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" "$url" || echo -e "\n000")
+
+            local codigo
+            codigo=$(echo "$respuesta" | tail -n1)
+            local cuerpo
+            cuerpo=$(echo "$respuesta" | sed '$d')
+
+            if [ "$codigo" != "200" ]; then
+              ERRORES="${ERRORES}\n• ${etiqueta}: HTTP ${codigo}"
+              echo "0"
+              return
             fi
 
-            # Releases publicados hoy
-            RELEASES=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
-              "https://api.github.com/repos/$OWNER/$REPO/releases?per_page=10" \
-              | jq --arg since "$SINCE" '[.[] | select(.published_at > $since)] | length' 2>/dev/null || echo "0")
-            RELEASES_HOY=$((RELEASES_HOY + RELEASES))
+            local tipo
+            tipo=$(echo "$cuerpo" | jq -r 'type' 2>/dev/null || echo "unknown")
 
-            # Issues abiertos hoy
-            ISSUES=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
-              "https://api.github.com/repos/$OWNER/$REPO/issues?state=open&since=$SINCE&per_page=50" \
-              | jq --arg since "$SINCE" '[.[] | select(.created_at > $since)] | length' 2>/dev/null || echo "0")
+            if [ "$tipo" != "array" ]; then
+              ERRORES="${ERRORES}\n• ${etiqueta}: respuesta no es array"
+              echo "0"
+              return
+            fi
+
+            echo "$cuerpo" | jq 'length' 2>/dev/null || echo "0"
+          }
+
+          for REPO in "${REPOS[@]}"; do
+            echo "→ Revisando $REPO"
+
+            # 1. Commits en las últimas 24h
+            COMMITS=$(contar_elementos \
+              "https://api.github.com/repos/$OWNER/$REPO/commits?since=$SINCE&per_page=100" \
+              "$REPO commits")
+
+            # 2. Releases publicados en las últimas 24h
+            #    La API no soporta "since", así que filtramos con jq y contamos.
+            RELEASES_RESP=$(curl -s -w "\n%{http_code}" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$OWNER/$REPO/releases?per_page=30" || echo -e "\n000")
+
+            RELEASES_CODE=$(echo "$RELEASES_RESP" | tail -n1)
+            RELEASES_BODY=$(echo "$RELEASES_RESP" | sed '$d')
+
+            RELEASES=0
+            if [ "$RELEASES_CODE" = "200" ]; then
+              RELEASES=$(echo "$RELEASES_BODY" | jq --arg since "$SINCE" \
+                '[.[] | select(.published_at > $since)] | length' 2>/dev/null || echo "0")
+            else
+              ERRORES="${ERRORES}\n• $REPO releases: HTTP ${RELEASES_CODE}"
+            fi
+
+            # 3. Issues creados en las últimas 24h
+            ISSUES_RESP=$(curl -s -w "\n%{http_code}" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$OWNER/$REPO/issues?state=all&since=$SINCE&per_page=50" || echo -e "\n000")
+
+            ISSUES_CODE=$(echo "$ISSUES_RESP" | tail -n1)
+            ISSUES_BODY=$(echo "$ISSUES_RESP" | sed '$d')
+
+            ISSUES=0
+            if [ "$ISSUES_CODE" = "200" ]; then
+              ISSUES=$(echo "$ISSUES_BODY" | jq --arg since "$SINCE" \
+                '[.[] | select(.created_at > $since) | select(.pull_request == null)] | length' \
+                2>/dev/null || echo "0")
+            else
+              ERRORES="${ERRORES}\n• $REPO issues: HTTP ${ISSUES_CODE}"
+            fi
+
+            # Acumular
+            TOTAL_COMMITS=$((TOTAL_COMMITS + COMMITS))
+            RELEASES_HOY=$((RELEASES_HOY + RELEASES))
             ISSUES_NUEVOS=$((ISSUES_NUEVOS + ISSUES))
+
+            if [ "$COMMITS" -gt 0 ]; then
+              REPOS_ACTIVOS="${REPOS_ACTIVOS}\n• \`${REPO}\`: ${COMMITS} commit(s)"
+            fi
           done
+
+          echo "Total commits: $TOTAL_COMMITS"
+          echo "Total releases: $RELEASES_HOY"
+          echo "Total issues: $ISSUES_NUEVOS"
 
           # Construir mensaje
           if [ "$TOTAL_COMMITS" -gt 0 ] || [ "$RELEASES_HOY" -gt 0 ] || [ "$ISSUES_NUEVOS" -gt 0 ]; then
@@ -87,6 +157,11 @@ jobs:
             )
             RANDOM_INDEX=$((RANDOM % ${#COMENTARIOS[@]}))
             MSG="📓 **Diario del desarrollador — ${TODAY}**\n\n${COMENTARIOS[$RANDOM_INDEX]}"
+          fi
+
+          # Avisar de errores de API si los hubo
+          if [ -n "$ERRORES" ]; then
+            MSG="${MSG}\n\n⚠️ **Avisos de la API:**${ERRORES}"
           fi
 
           PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')
