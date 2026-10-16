@@ -41,6 +41,7 @@ jobs:
             Write-Host "Sin cambios en CVs públicos"
           } else {
             git commit -m "chore: regenerar CVs [skip ci]"
+            git pull --rebase origin main
             git push
           }
 
