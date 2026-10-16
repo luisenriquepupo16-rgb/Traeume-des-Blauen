@@ -7,6 +7,7 @@ on:
       - 'docs/catalog.json'
       - 'docs/content/*.json'
       - 'cv/cv-data.json'
+      - 'cv/perfil.jpg'
 
 jobs:
   rebuild:
@@ -17,6 +18,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Instalar Pandoc y wkhtmltopdf
+        shell: pwsh
+        run: |
+          choco install pandoc wkhtmltopdf -y --no-progress
 
       - name: Generar CVs
         shell: pwsh
@@ -31,12 +37,12 @@ jobs:
         run: |
           ./scripts/generate-cv.ps1
 
-      - name: Subir CVs español e inglés
+      - name: Subir CVs públicos (md y pdf)
         shell: pwsh
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add cv/cv.es.md cv/cv.en.md
+          git add cv/cv.es.md cv/cv.es.pdf cv/cv.en.md cv/cv.en.pdf
           if (git diff --cached --quiet) {
             Write-Host "Sin cambios en CVs públicos"
           } else {
@@ -51,16 +57,31 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           $webhook = $env:DISCORD_WEBHOOK
-          $content = Get-Content cv/cv-cuba.md -Raw
+          $content = [System.IO.File]::ReadAllBytes("cv/cv-cuba.pdf")
           $boundary = [System.Guid]::NewGuid().ToString()
           $LF = "`r`n"
-          $body = "--$boundary$LF"
-          $body += "Content-Disposition: form-data; name=`"content`"$LF$LF"
-          $body += "CV cubano regenerado: $((Get-Date).ToString('yyyy-MM-dd'))$LF"
-          $body += "--$boundary$LF"
-          $body += "Content-Disposition: form-data; name=`"file`"; filename=`"cv-cuba.md`"$LF"
-          $body += "Content-Type: text/markdown$LF$LF"
-          $body += $content + $LF
-          $body += "--$boundary--$LF"
-          $bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
+          
+          $ms = New-Object System.IO.MemoryStream
+          $writer = New-Object System.IO.StreamWriter($ms, [System.Text.Encoding]::UTF8)
+          $writer.NewLine = $LF
+          $writer.WriteLine("--$boundary")
+          $writer.WriteLine("Content-Disposition: form-data; name=`"content`"")
+          $writer.WriteLine("")
+          $writer.WriteLine("CV cubano regenerado: $((Get-Date).ToString('yyyy-MM-dd'))")
+          $writer.WriteLine("--$boundary")
+          $writer.WriteLine("Content-Disposition: form-data; name=`"file`"; filename=`"cv-cuba.pdf`"")
+          $writer.WriteLine("Content-Type: application/pdf")
+          $writer.WriteLine("")
+          $writer.Flush()
+          
+          $ms.Write($content, 0, $content.Length)
+          
+          $writer.WriteLine("")
+          $writer.WriteLine("--$boundary--")
+          $writer.Flush()
+          $writer.Dispose()
+          
+          $bytes = $ms.ToArray()
+          $ms.Dispose()
+          
           Invoke-RestMethod -Uri $webhook -Method Post -ContentType "multipart/form-data; boundary=$boundary" -Body $bytes
