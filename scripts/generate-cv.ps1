@@ -322,8 +322,7 @@ function Convert-MdToPdf {
             --from=markdown+hard_line_breaks `
             -V geometry:margin=2cm `
             -V fontsize=11pt `
-            -V documentclass=article `
-            -V mainfont="DejaVu Sans"
+            -V documentclass=article
 
         if ($LASTEXITCODE -ne 0) {
             throw "Pandoc falló (exit $LASTEXITCODE)"
