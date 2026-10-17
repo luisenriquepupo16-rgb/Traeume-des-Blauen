@@ -1,18 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-Generador de CVs para Träume des Blauen.
-
-Usa la fuente DejaVu Sans (Unicode) para soportar tildes,
-bullets, guiones largos y cualquier carácter especial.
-
-Genera:
-- cv.es.pdf: CV en español (público).
-- cv-cuba.pdf: CV cubano (formal, con datos personales).
-- cv.en.pdf: solo si existe cv-data.en.json (por ahora, no).
-"""
-
 import json
 import os
 import sys
@@ -21,8 +9,6 @@ from pathlib import Path
 
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
-
-# ===== Configuración =====
 
 REPO_ROOT = Path(__file__).parent.parent.resolve()
 CV_DATA_PATH = REPO_ROOT / "cv" / "cv-data.json"
@@ -37,8 +23,6 @@ FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
 FECHA_HOY = date.today().strftime("%d/%m/%Y")
 
-
-# ===== Utilidades =====
 
 def cargar_json(path, default):
     if not path.exists():
@@ -110,8 +94,6 @@ def tiene_datos_basicos(datos, idioma):
     return True
 
 
-# ===== Clase PDF =====
-
 class CVPDF(FPDF):
     def __init__(self):
         super().__init__()
@@ -126,7 +108,6 @@ class CVPDF(FPDF):
         self.cell(0, 10, f"Página {self.page_no()}", align="C",
                   new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         self.ln(10)
-        # Resetear posición para evitar caracteres raros al cambiar de página
         self.set_xy(self.l_margin, self.t_margin)
 
     def footer(self):
@@ -135,8 +116,6 @@ class CVPDF(FPDF):
         self.set_text_color(128, 128, 128)
         self.cell(0, 10, f"Generado el {FECHA_HOY}", align="C")
 
-
-# ===== Helpers de contenido =====
 
 def add_seccion(pdf, titulo):
     if pdf.will_page_break(15):
@@ -171,8 +150,6 @@ def add_bullet(pdf, texto_str):
     pdf.multi_cell(pdf.epw - 5, 5, "• " + texto_str)
     pdf.ln(1)
 
-
-# ===== CV español =====
 
 def generar_cv_es(datos, apps, opensource):
     if not tiene_datos_basicos(datos, "ES"):
@@ -261,8 +238,6 @@ def generar_cv_es(datos, apps, opensource):
     return True
 
 
-# ===== CV cubano =====
-
 def generar_cv_cuba(datos):
     if not tiene_datos_basicos(datos, "CUBA"):
         return False
@@ -271,10 +246,10 @@ def generar_cv_cuba(datos):
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
 
+    # Encabezado: alineado a la izquierda, con multi_cell
     pdf.set_font("DejaVu", "B", 18)
     pdf.set_text_color(0, 0, 0)
-    pdf.cell(0, 12, "CURRÍCULUM VITAE", align="C",
-             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.multi_cell(0, 12, "CURRÍCULUM VITAE", align="L")
     pdf.ln(5)
 
     if FOTO_PATH.exists():
@@ -334,17 +309,15 @@ def generar_cv_cuba(datos):
     apps = cargar_catalogo()
     for app in apps:
         nombre = texto(app.get("name"))
-        desc = texto(app.get("description"))
-        if nombre and desc:
-            add_bullet(pdf, f"{nombre}: {desc}")
+        if nombre:
+            add_bullet(pdf, nombre)
 
     opensource = cargar_opensource()
     for item in opensource:
         proyecto = texto(item.get("project"))
         detalle = texto(item.get("detail"))
-        desc = texto(item.get("description"))
-        if proyecto and desc:
-            add_bullet(pdf, f"{proyecto} — {detalle}: {desc}")
+        if proyecto:
+            add_bullet(pdf, f"{proyecto} — {detalle}" if detalle else proyecto)
 
     pdf.ln(5)
     pdf.set_font("DejaVu", "", 8)
@@ -357,8 +330,6 @@ def generar_cv_cuba(datos):
     print(f"[OK] Generado: {output}")
     return True
 
-
-# ===== Main =====
 
 def main():
     print("=== Generador de CVs ===")
