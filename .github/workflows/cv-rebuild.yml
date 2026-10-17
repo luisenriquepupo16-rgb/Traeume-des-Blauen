@@ -54,6 +54,12 @@ jobs:
         run: |
           ./scripts/generate-cv.ps1
 
+      - name: Debug: mostrar cv-cuba.md
+        shell: pwsh
+        run: |
+          Write-Host "=== Primeras 40 lineas de cv-cuba.md ==="
+          Get-Content cv/cv-cuba.md -TotalCount 40 | ForEach-Object { Write-Host $_ }
+
       - name: Subir CVs públicos (md y pdf)
         shell: pwsh
         run: |
