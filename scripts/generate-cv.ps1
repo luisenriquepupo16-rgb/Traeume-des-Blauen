@@ -46,30 +46,30 @@ $facultad = Resolve-Placeholder $data.facultad
 
 $fechaHoy = (Get-Date).ToString("dd/MM/yyyy")
 
-# Lista de proyectos con doble salto de línea
+# Lista de proyectos (con \n simple, no \n\n)
 $proyectosMd = ""
 foreach ($app in $catalog.apps) {
-    $proyectosMd += "- **$($app.name)**: $($app.description)`n`n"
+    $proyectosMd += "- **$($app.name)**: $($app.description)`n"
 }
 
 $osMd = ""
 foreach ($item in $opensource.items) {
-    $osMd += "- **$($item.project)** — $($item.detail): $($item.description)`n`n"
+    $osMd += "- **$($item.project)** — $($item.detail): $($item.description)`n"
 }
 
 $idiomasMd = ""
 foreach ($idioma in $data.idiomas) {
-    $idiomasMd += "- **$($idioma.idioma):** $($idioma.nivel)`n`n"
+    $idiomasMd += "- **$($idioma.idioma):** $($idioma.nivel)`n"
 }
 
 $aptitudesMd = ""
 foreach ($apt in $data.aptitudes) {
-    $aptitudesMd += "- $apt`n`n"
+    $aptitudesMd += "- $apt`n"
 }
 
 $logrosPre = ""
 foreach ($logro in $data.preuniversitario.logros) {
-    $logrosPre += "- $logro`n`n"
+    $logrosPre += "- $logro`n"
 }
 
 # ===== CV ESPAÑOL =====
@@ -207,7 +207,7 @@ Write-Host "Generado: $cvEnPath"
 # ===== CV CUBA =====
 $fotoMd = ""
 if (Test-Path $fotoPath) {
-    $fotoMd = "![Foto de perfil](perfil.jpg)`n`n"
+    $fotoMd = "![Foto de perfil](perfil.jpg)`n"
 }
 
 $datosMd = ""
@@ -223,7 +223,7 @@ $datos = @(
 )
 
 foreach ($d in $datos) {
-    $datosMd += "$($d.num). **$($d.label):** $($d.valor)`n`n"
+    $datosMd += "$($d.num). **$($d.label):** $($d.valor)`n"
 }
 
 $cvCuba = @"
@@ -243,6 +243,7 @@ $datosMd
 - Graduado de enseñanza media-superior en el $($data.preuniversitario.nombre) en el año $($data.preuniversitario.año).
 
 $logrosPre
+
 - Graduado de la enseñanza media en la $($data.media).
 
 ---
@@ -302,7 +303,6 @@ function Convert-MdToPdf {
             -V geometry:margin=2cm `
             -V fontsize=11pt `
             -V documentclass=article `
-            -V lang=es `
             -V mainfont="Arial"
 
         if ($LASTEXITCODE -ne 0) {
