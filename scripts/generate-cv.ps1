@@ -63,7 +63,7 @@ foreach ($idioma in $data.idiomas) {
     $idiomasMdEs += "• **$($idioma.idioma):** $($idioma.nivel)`n`n"
 }
 
-# Idiomas para inglés (traducidos, con • manual)
+# Idiomas para inglés (traducidos, con - en lugar de •)
 $idiomasMdEn = ""
 foreach ($idioma in $data.idiomas) {
     $nombre = $idioma.idioma
@@ -80,7 +80,7 @@ foreach ($idioma in $data.idiomas) {
         "En estudio \(nivel usuario\)" { "Studying (user level)" }
         default { $nivel }
     }
-    $idiomasMdEn += "• **$($nombreEn):** $($nivelEn)`n`n"
+    $idiomasMdEn += "- **$($nombreEn):** $($nivelEn)`n`n"
 }
 
 $aptitudesMd = ""
@@ -205,13 +205,13 @@ $($data.educacion.año). Thesis in development.
 
 **Competitive Programming**
 
-Self-taught since age 14, mainly in `` `C++` ``. Participation in national events and in the ICPC.
+Self-taught since age 14, mainly in C plus plus. Participation in national events and in the ICPC.
 
 ---
 
 ## Technical Skills
 
-**Languages**: Kotlin, Python, `` `C++` ``, Java, Bash
+**Languages**: Kotlin, Python, C plus plus, Java, Bash
 
 **Android**: Jetpack Compose, View Binding, Material 3, Coroutines, Flow, Ktor, DataStore, WorkManager, Foreground Services, FileProvider
 
