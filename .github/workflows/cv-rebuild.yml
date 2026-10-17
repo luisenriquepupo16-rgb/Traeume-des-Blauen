@@ -37,6 +37,9 @@ jobs:
             etoolbox
             hyperref
             parskip
+            unicode-math
+            lm
+            lmodern
 
       - name: Generar CVs
         shell: pwsh
