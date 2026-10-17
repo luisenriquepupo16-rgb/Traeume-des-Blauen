@@ -63,7 +63,7 @@ foreach ($idioma in $data.idiomas) {
     $idiomasMdEs += "• **$($idioma.idioma):** $($idioma.nivel)`n`n"
 }
 
-# Idiomas para inglés (traducidos, con - en lugar de •)
+# Idiomas para inglés (traducidos, con • manual)
 $idiomasMdEn = ""
 foreach ($idioma in $data.idiomas) {
     $nombre = $idioma.idioma
@@ -80,7 +80,7 @@ foreach ($idioma in $data.idiomas) {
         "En estudio \(nivel usuario\)" { "Studying (user level)" }
         default { $nivel }
     }
-    $idiomasMdEn += "- **$($nombreEn):** $($nivelEn)`n`n"
+    $idiomasMdEn += "• **$($nombreEn):** $($nivelEn)`n`n"
 }
 
 $aptitudesMd = ""
@@ -169,7 +169,7 @@ $cvEsPath = Join-Path $outputDirPath "cv.es.md"
 Set-Content -Path $cvEsPath -Value $cvEs -Encoding UTF8
 Write-Host "Generado: $cvEsPath"
 
-# ===== CV INGLÉS (con cambios) =====
+# ===== CV INGLÉS (con bullets •) =====
 $cvEn = @"
 **$($data.nombre_publico)**
 
@@ -228,13 +228,13 @@ $idiomasMdEn
 
 ## Availability
 
-- **Mode**: remote, asynchronous.
+• **Mode**: remote, asynchronous.
 
-- **Hours**: 8 hours per day, flexible time slots.
+• **Hours**: 8 hours per day, flexible time slots.
 
-- **Note**: based in Cuba, where internet connection may be intermittent. I work well in goal-oriented setups.
+• **Note**: based in Cuba, where internet connection may be intermittent. I work well in goal-oriented setups.
 
-- **Travel**: limited availability, evaluated case by case.
+• **Travel**: limited availability, evaluated case by case.
 
 ---
 
@@ -370,7 +370,7 @@ function Convert-MdToPdf {
 # Español: con hard_line_breaks (funciona bien)
 Convert-MdToPdf -MdPath $cvEsPath -PdfPath (Join-Path $outputDirPath "cv.es.pdf")
 
-# Inglés: sin hard_line_breaks (para que los bullets no se peguen)
+# Inglés: sin hard_line_breaks (para que los bullets • no se peguen)
 Convert-MdToPdf -MdPath $cvEnPath -PdfPath (Join-Path $outputDirPath "cv.en.pdf") -NoHardLineBreaks
 
 # Cubano: con hard_line_breaks (funciona bien, salvo los caracteres raros)
