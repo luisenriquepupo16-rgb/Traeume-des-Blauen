@@ -43,54 +43,14 @@ jobs:
 
           HISTORY_TEXT=$(echo "$HISTORY_JSON" | jq -r '.[] | "- \(.date): \(.summary)"' | head -7)
 
-          PROMPT="Eres un asistente que escribe un diario personal para Dreamer, un desarrollador Android de Cuba. Tu tono es cercano, calido, sin exagerar. No uses emojis excesivos.
+          PROMPT="Eres un asistente que escribe un diario personal para Dreamer, un desarrollador Android de Cuba. Tu tono es cercano, calido, sin exagerar. No uses emojis excesivos.\n\nActividad de hoy ($TODAY):\n- Commits: $COMMITS\n- Releases: $RELEASES\n- Issues nuevos: $ISSUES\n- Repos: $REPOS\n\nHistorial de dias anteriores (para contexto):\n$HISTORY_TEXT\n\nEscribe un parrafo corto (3-5 frases) narrando lo que hizo Dreamer hoy, teniendo en cuenta el contexto de los dias anteriores. Si hubo racha, mencionarla. Si rompio racha, animalo. No inventes datos que no esten arriba.\n\nNarrativa:"
 
-Actividad de hoy ($TODAY):
-- Commits: $COMMITS
-- Releases: $RELEASES
-- Issues nuevos: $ISSUES
-- Repos: $REPOS
+          GEMINI_RESPONSE=$(curl -s -X POST \
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg prompt "$PROMPT" '{contents: [{parts: [{text: $prompt}]}]}')")
 
-Historial de dias anteriores (para contexto):
-$HISTORY_TEXT
-
-Escribe un parrafo corto (3-5 frases) narrando lo que hizo Dreamer hoy, teniendo en cuenta el contexto de los dias anteriores. Si hubo racha, mencionarla. Si rompio racha, animalo. No inventes datos que no esten arriba.
-
-Narrativa:"
-
-          # Reintentos con backoff exponencial: 3 intentos (5s, 15s, 45s)
-          NARRATIVE=""
-          MAX_INTENTOS=3
-          for INTENTO in 1 2 3; do
-            echo "Intento $INTENTO de $MAX_INTENTOS..."
-
-            GEMINI_RESPONSE=$(curl -s -X POST \
-              "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}" \
-              -H "Content-Type: application/json" \
-              -d "$(jq -n --arg prompt "$PROMPT" '{contents: [{parts: [{text: $prompt}]}]}')" || echo "{}")
-
-            CANDIDATE=$(echo "$GEMINI_RESPONSE" | jq -r '.candidates[0].content.parts[0].text // ""')
-
-            if [ -n "$CANDIDATE" ] && [ "$CANDIDATE" != "null" ]; then
-              NARRATIVE="$CANDIDATE"
-              echo "Respuesta recibida en intento $INTENTO."
-              break
-            fi
-
-            ERROR_CODE=$(echo "$GEMINI_RESPONSE" | jq -r '.error.code // ""')
-            ERROR_MSG=$(echo "$GEMINI_RESPONSE" | jq -r '.error.message // ""')
-            echo "Intento $INTENTO falló. Code: $ERROR_CODE. Msg: $ERROR_MSG"
-
-            if [ "$INTENTO" -lt "$MAX_INTENTOS" ]; then
-              ESPERA=$((5 * 3 ** (INTENTO - 1)))
-              echo "Esperando $ESPERA segundos antes del siguiente intento..."
-              sleep "$ESPERA"
-            fi
-          done
-
-          if [ -z "$NARRATIVE" ]; then
-            NARRATIVE="No se pudo generar narrativa tras $MAX_INTENTOS intentos. Probablemente el modelo estaba saturado. Se reintentará mañana."
-          fi
+          NARRATIVE=$(echo "$GEMINI_RESPONSE" | jq -r '.candidates[0].content.parts[0].text // "No se pudo generar narrativa."')
 
           NEW_HISTORY=$(echo "$HISTORY_JSON" | jq \
             --arg date "$TODAY" \
@@ -103,7 +63,7 @@ Narrativa:"
             -d "$(jq -n --arg content "$NEW_HISTORY" '{files: {"diary_history.json": {content: $content}}}')" \
             "https://api.github.com/gists/$GIST_ID" > /dev/null
 
-          MSG=$(printf '📖 **Diario narrativo — %s**\n\n%s' "$TODAY" "$NARRATIVE")
+          MSG="📖 **Diario narrativo — ${TODAY}**\n\n${NARRATIVE}"
 
           PAYLOAD=$(jq -n --arg content "$MSG" '{content: $content}')
           curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$DISCORD_WEBHOOK"
