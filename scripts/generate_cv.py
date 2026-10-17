@@ -6,6 +6,11 @@ Generador de CVs para Träume des Blauen.
 
 Usa la fuente DejaVu Sans (Unicode) para soportar tildes,
 bullets, guiones largos y cualquier carácter especial.
+
+Genera:
+- cv.es.pdf: CV en español (público).
+- cv-cuba.pdf: CV cubano (formal, con datos personales).
+- cv.en.pdf: solo si existe cv-data.en.json (por ahora, no).
 """
 
 import json
@@ -21,12 +26,12 @@ from fpdf.enums import XPos, YPos
 
 REPO_ROOT = Path(__file__).parent.parent.resolve()
 CV_DATA_PATH = REPO_ROOT / "cv" / "cv-data.json"
+CV_DATA_EN_PATH = REPO_ROOT / "cv" / "cv-data.en.json"
 CATALOG_PATH = REPO_ROOT / "docs" / "catalog.json"
 OPENSOURCE_PATH = REPO_ROOT / "docs" / "content" / "opensource.json"
 OUTPUT_DIR = REPO_ROOT / "cv"
 FOTO_PATH = OUTPUT_DIR / "perfil.jpg"
 
-# Rutas de las fuentes DejaVu en Ubuntu (instaladas por el workflow)
 FONT_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
@@ -60,14 +65,10 @@ def texto(valor):
     return str(valor).strip()
 
 
-# ===== Carga de datos =====
-
-def cargar_datos():
-    data = cargar_json(CV_DATA_PATH, None)
+def cargar_datos(path=CV_DATA_PATH):
+    data = cargar_json(path, None)
     if data is None:
-        print("[ERROR] No se pudo cargar cv-data.json. Abortando.")
-        sys.exit(1)
-
+        return None
     resuelto = {}
     for key, value in data.items():
         if isinstance(value, dict):
@@ -80,7 +81,6 @@ def cargar_datos():
             }
         else:
             resuelto[key] = resolver_placeholder(value)
-
     return resuelto
 
 
@@ -94,14 +94,13 @@ def cargar_opensource():
     return data.get("items", [])
 
 
-# ===== Validación =====
-
 def tiene_datos_basicos(datos, idioma):
+    if datos is None:
+        return False
     nombre = texto(datos.get("nombre_publico"))
     educacion = datos.get("educacion", {})
     carrera = texto(educacion.get("carrera"))
     universidad = texto(educacion.get("universidad"))
-
     if not nombre:
         print(f"[WARN] {idioma}: falta el nombre. No se genera.")
         return False
@@ -111,12 +110,11 @@ def tiene_datos_basicos(datos, idioma):
     return True
 
 
-# ===== Generación de PDF =====
+# ===== Clase PDF =====
 
 class CVPDF(FPDF):
     def __init__(self):
         super().__init__()
-        # Registrar la fuente DejaVu (solo regular y bold)
         self.add_font("DejaVu", "", FONT_REGULAR)
         self.add_font("DejaVu", "B", FONT_BOLD)
 
@@ -128,6 +126,8 @@ class CVPDF(FPDF):
         self.cell(0, 10, f"Página {self.page_no()}", align="C",
                   new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         self.ln(10)
+        # Resetear posición para evitar caracteres raros al cambiar de página
+        self.set_xy(self.l_margin, self.t_margin)
 
     def footer(self):
         self.set_y(-15)
@@ -136,8 +136,10 @@ class CVPDF(FPDF):
         self.cell(0, 10, f"Generado el {FECHA_HOY}", align="C")
 
 
+# ===== Helpers de contenido =====
+
 def add_seccion(pdf, titulo):
-    if pdf.get_y() > 250:
+    if pdf.will_page_break(15):
         pdf.add_page()
     pdf.set_font("DejaVu", "B", 12)
     pdf.set_text_color(46, 90, 136)
@@ -150,6 +152,8 @@ def add_seccion(pdf, titulo):
 def add_texto(pdf, texto_str):
     if not texto_str:
         return
+    if pdf.will_page_break(10):
+        pdf.add_page()
     pdf.set_font("DejaVu", "", 10)
     pdf.set_text_color(51, 51, 51)
     pdf.multi_cell(0, 5, texto_str)
@@ -159,10 +163,12 @@ def add_texto(pdf, texto_str):
 def add_bullet(pdf, texto_str):
     if not texto_str:
         return
+    if pdf.will_page_break(10):
+        pdf.add_page()
     pdf.set_font("DejaVu", "", 10)
     pdf.set_text_color(51, 51, 51)
-    pdf.set_x(pdf.get_x() + 5)
-    pdf.multi_cell(0, 5, "• " + texto_str)
+    pdf.set_x(pdf.l_margin + 5)
+    pdf.multi_cell(pdf.epw - 5, 5, "• " + texto_str)
     pdf.ln(1)
 
 
@@ -250,95 +256,6 @@ def generar_cv_es(datos, apps, opensource):
              new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     output = OUTPUT_DIR / "cv.es.pdf"
-    pdf.output(str(output))
-    print(f"[OK] Generado: {output}")
-    return True
-
-
-# ===== CV inglés =====
-
-def generar_cv_en(datos, apps, opensource):
-    if not tiene_datos_basicos(datos, "EN"):
-        return False
-
-    pdf = CVPDF()
-    pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
-
-    pdf.set_font("DejaVu", "B", 20)
-    pdf.set_text_color(46, 90, 136)
-    pdf.cell(0, 10, texto(datos.get("nombre_publico")),
-             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
-    pdf.set_font("DejaVu", "", 12)
-    pdf.set_text_color(92, 64, 51)
-    pdf.cell(0, 6, "Android Developer | Kotlin · Jetpack Compose",
-             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
-    contacto = []
-    if texto(datos.get("ubicacion_publica")):
-        contacto.append(texto(datos.get("ubicacion_publica")))
-    if texto(datos.get("portfolio")):
-        contacto.append(f"Portfolio: {texto(datos.get('portfolio'))}")
-    if contacto:
-        pdf.set_font("DejaVu", "", 9)
-        pdf.set_text_color(128, 128, 128)
-        pdf.cell(0, 5, " · ".join(contacto),
-                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.ln(5)
-
-    add_seccion(pdf, "Profile")
-    add_texto(pdf, "Self-taught Android developer, currently in the final year of a Computer Engineering degree. I build mobile applications with Kotlin and Jetpack Compose, with hands-on experience in publishing, maintenance, and deployment automation.")
-
-    if apps:
-        add_seccion(pdf, "Featured Projects")
-        for app in apps:
-            nombre = texto(app.get("name"))
-            desc = texto(app.get("description"))
-            if nombre and desc:
-                add_bullet(pdf, f"{nombre}: {desc}")
-
-    if opensource:
-        add_seccion(pdf, "Open Source Contributions")
-        for item in opensource:
-            proyecto = texto(item.get("project"))
-            detalle = texto(item.get("detail"))
-            desc = texto(item.get("description"))
-            if proyecto and desc:
-                add_bullet(pdf, f"{proyecto} — {detalle}: {desc}")
-
-    edu = datos.get("educacion", {})
-    add_seccion(pdf, "Education")
-    add_texto(pdf, f"{texto(edu.get('carrera'))} — {texto(edu.get('universidad'))}")
-    add_texto(pdf, f"{texto(edu.get('año'))}. Thesis in development.")
-
-    add_seccion(pdf, "Technical Skills")
-    add_texto(pdf, "Languages: Kotlin, Python, C++, Java, Bash")
-    add_texto(pdf, "Android: Jetpack Compose, View Binding, Material 3, Coroutines, Flow, Ktor, DataStore, WorkManager, Foreground Services, FileProvider")
-    add_texto(pdf, "Backend & Automation: GitHub Actions, CI/CD, Cloudflare Workers, Gist API")
-    add_texto(pdf, "Tools: Git, GitHub CLI, Gradle, PowerShell, Linux, REST APIs")
-
-    idiomas = datos.get("idiomas", [])
-    if idiomas:
-        add_seccion(pdf, "Languages")
-        for idioma in idiomas:
-            nombre = texto(idioma.get("idioma"))
-            nivel = texto(idioma.get("nivel"))
-            if nombre and nivel:
-                add_bullet(pdf, f"{nombre}: {nivel}")
-
-    add_seccion(pdf, "Availability")
-    add_texto(pdf, "Mode: remote, asynchronous.")
-    add_texto(pdf, "Hours: 8 hours per day, flexible time slots.")
-    add_texto(pdf, "Note: based in Cuba, where internet connection may be intermittent.")
-
-    pdf.ln(5)
-    pdf.set_font("DejaVu", "", 8)
-    pdf.set_text_color(128, 128, 128)
-    pdf.cell(0, 5, f"Last update: {FECHA_HOY}",
-             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
-    output = OUTPUT_DIR / "cv.en.pdf"
     pdf.output(str(output))
     print(f"[OK] Generado: {output}")
     return True
@@ -447,7 +364,7 @@ def main():
     print("=== Generador de CVs ===")
     OUTPUT_DIR.mkdir(exist_ok=True)
 
-    datos = cargar_datos()
+    datos_es = cargar_datos(CV_DATA_PATH)
     apps = cargar_catalogo()
     opensource = cargar_opensource()
 
@@ -455,9 +372,18 @@ def main():
     print(f"Open source: {len(opensource)}")
     print(f"Foto: {'sí' if FOTO_PATH.exists() else 'no'}")
 
-    generar_cv_es(datos, apps, opensource)
-    generar_cv_en(datos, apps, opensource)
-    generar_cv_cuba(datos)
+    if datos_es:
+        generar_cv_es(datos_es, apps, opensource)
+        generar_cv_cuba(datos_es)
+
+    if CV_DATA_EN_PATH.exists():
+        datos_en = cargar_datos(CV_DATA_EN_PATH)
+        if datos_en:
+            print("[INFO] cv-data.en.json existe, pero generar_cv_en aún no está implementada.")
+        else:
+            print("[WARN] cv-data.en.json existe pero no se pudo cargar.")
+    else:
+        print("[INFO] No existe cv-data.en.json. No se genera el CV en inglés.")
 
     print("=== Todos los CVs generados ===")
 
