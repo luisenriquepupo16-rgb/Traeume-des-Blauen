@@ -122,7 +122,7 @@ def add_seccion(pdf, titulo):
         pdf.add_page()
     pdf.set_font("DejaVu", "B", 12)
     pdf.set_text_color(46, 90, 136)
-    pdf.cell(0, 8, titulo, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.multi_cell(0, 8, titulo, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.set_draw_color(201, 169, 97)
     pdf.line(pdf.get_x(), pdf.get_y(), pdf.get_x() + 190, pdf.get_y())
     pdf.ln(3)
@@ -246,7 +246,7 @@ def generar_cv_cuba(datos):
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
 
-    # Encabezado: alineado a la izquierda, con multi_cell
+    # Encabezado: con multi_cell, alineado a la izquierda
     pdf.set_font("DejaVu", "B", 18)
     pdf.set_text_color(0, 0, 0)
     pdf.multi_cell(0, 12, "CURRÍCULUM VITAE", align="L")
@@ -306,12 +306,14 @@ def generar_cv_cuba(datos):
     if tesis:
         add_bullet(pdf, f"Tesis de grado (en desarrollo): {tesis}")
 
+    # Proyectos: solo el nombre, sin descripción
     apps = cargar_catalogo()
     for app in apps:
         nombre = texto(app.get("name"))
         if nombre:
             add_bullet(pdf, nombre)
 
+    # Open source: proyecto — detalle, sin descripción
     opensource = cargar_opensource()
     for item in opensource:
         proyecto = texto(item.get("project"))
