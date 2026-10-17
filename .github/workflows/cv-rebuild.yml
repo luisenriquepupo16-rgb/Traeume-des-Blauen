@@ -19,41 +19,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Cache MiKTeX
-        uses: actions/cache@v4
-        with:
-          path: |
-            C:\Program Files\MiKTeX
-            C:\Users\runneradmin\AppData\Local\MiKTeX
-            C:\Users\runneradmin\AppData\Roaming\MiKTeX
-          key: miktex-${{ runner.os }}-v1
-          restore-keys: |
-            miktex-${{ runner.os }}-
-
-      - name: Instalar MiKTeX y Pandoc
+      - name: Instalar Pandoc
         shell: pwsh
         run: |
-          # Pandoc
           choco install pandoc -y --no-progress
 
-          # MiKTeX (si no está en caché)
-          if (-not (Test-Path "C:\Program Files\MiKTeX\miktex\bin\x64\xelatex.exe")) {
-            Write-Host "MiKTeX no encontrado. Instalando..."
-            choco install miktex -y --no-progress
-          } else {
-            Write-Host "MiKTeX ya está instalado (desde caché)."
-          }
-
-          # Refrescar PATH
-          $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
-
-          # Verificar que xelatex existe
-          if (Test-Path "C:\Program Files\MiKTeX\miktex\bin\x64\xelatex.exe") {
-            Write-Host "xelatex encontrado."
-          } else {
-            Write-Host "xelatex NO encontrado. Buscando..."
-            Get-ChildItem -Path "C:\Program Files\MiKTeX" -Recurse -Filter "xelatex.exe" -ErrorAction SilentlyContinue | Select-Object FullName
-          }
+      - name: Configurar TeX Live
+        uses: TeX-Live/setup-texlive-action@v3
+        with:
+          packages: |
+            scheme-basic
+            xelatex
+            fontspec
+            geometry
 
       - name: Generar CVs
         shell: pwsh
