@@ -46,7 +46,7 @@ $facultad = Resolve-Placeholder $data.facultad
 
 $fechaHoy = (Get-Date).ToString("dd/MM/yyyy")
 
-# Lista de proyectos
+# Lista de proyectos con doble salto de línea
 $proyectosMd = ""
 foreach ($app in $catalog.apps) {
     $proyectosMd += "- **$($app.name)**: $($app.description)`n`n"
@@ -59,17 +59,17 @@ foreach ($item in $opensource.items) {
 
 $idiomasMd = ""
 foreach ($idioma in $data.idiomas) {
-    $idiomasMd += "- **$($idioma.idioma):** $($idioma.nivel)`n"
+    $idiomasMd += "- **$($idioma.idioma):** $($idioma.nivel)`n`n"
 }
 
 $aptitudesMd = ""
 foreach ($apt in $data.aptitudes) {
-    $aptitudesMd += "- $apt`n"
+    $aptitudesMd += "- $apt`n`n"
 }
 
 $logrosPre = ""
 foreach ($logro in $data.preuniversitario.logros) {
-    $logrosPre += "- $logro`n"
+    $logrosPre += "- $logro`n`n"
 }
 
 # ===== CV ESPAÑOL =====
@@ -207,7 +207,23 @@ Write-Host "Generado: $cvEnPath"
 # ===== CV CUBA =====
 $fotoMd = ""
 if (Test-Path $fotoPath) {
-    $fotoMd = "![Foto de perfil](perfil.jpg)`n"
+    $fotoMd = "![Foto de perfil](perfil.jpg)`n`n"
+}
+
+$datosMd = ""
+$datos = @(
+    @{ num = "1"; label = "Nombres y Apellidos"; valor = $nombreLegal },
+    @{ num = "2"; label = "Sexo"; valor = "M" },
+    @{ num = "3"; label = "Edad"; valor = "$edad años" },
+    @{ num = "4"; label = "Fecha de Nacimiento"; valor = $fechaNacimiento },
+    @{ num = "5"; label = "Centro de Estudio"; valor = "$($data.educacion.universidad). $facultad." },
+    @{ num = "6"; label = "Cargo"; valor = "Estudiante" },
+    @{ num = "7"; label = "Dirección Particular"; valor = $direccion },
+    @{ num = "8"; label = "Teléfono"; valor = "Móvil: $telefono" }
+)
+
+foreach ($d in $datos) {
+    $datosMd += "$($d.num). **$($d.label):** $($d.valor)`n`n"
 }
 
 $cvCuba = @"
@@ -217,15 +233,7 @@ $fotoMd
 
 ## I. DATOS GENERALES
 
-1. **Nombres y Apellidos:** $nombreLegal
-2. **Sexo:** M
-3. **Edad:** $edad años
-4. **Fecha de Nacimiento:** $fechaNacimiento
-5. **Centro de Estudio:** $($data.educacion.universidad). $facultad.
-6. **Cargo:** Estudiante
-7. **Dirección Particular:** $direccion
-8. **Teléfono:** Móvil: $telefono
-
+$datosMd
 ---
 
 ## FORMACIÓN
@@ -235,7 +243,6 @@ $fotoMd
 - Graduado de enseñanza media-superior en el $($data.preuniversitario.nombre) en el año $($data.preuniversitario.año).
 
 $logrosPre
-
 - Graduado de la enseñanza media en la $($data.media).
 
 ---
@@ -294,7 +301,9 @@ function Convert-MdToPdf {
             --pdf-engine=xelatex `
             -V geometry:margin=2cm `
             -V fontsize=11pt `
-            -V documentclass=article
+            -V documentclass=article `
+            -V lang=es `
+            -V mainfont="Arial"
 
         if ($LASTEXITCODE -ne 0) {
             throw "Pandoc falló (exit $LASTEXITCODE)"
