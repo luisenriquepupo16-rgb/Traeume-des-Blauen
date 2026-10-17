@@ -29,7 +29,7 @@ jobs:
         with:
           packages: |
             scheme-basic
-            xelatex
+            xetex
             fontspec
             geometry
 
