@@ -46,13 +46,13 @@ Self-taught Android developer, currently in the final year of a Computer Enginee
 
 **Competitive Programming**
 
-Self-taught since age 14, mainly in C++. Participation in national events and in the ICPC.
+Self-taught since age 14, mainly in ` C++ `. Participation in national events and in the ICPC.
 
 ---
 
 ## Technical Skills
 
-**Languages**: Kotlin, Python, C++, Java, Bash
+**Languages**: Kotlin, Python, ` C++ `, Java, Bash
 
 **Android**: Jetpack Compose, View Binding, Material 3, Coroutines, Flow, Ktor, DataStore, WorkManager, Foreground Services, FileProvider
 
@@ -64,11 +64,11 @@ Self-taught since age 14, mainly in C++. Participation in national events and in
 
 ## Languages
 
-• **Español:** Nativo
+• **Spanish:** Native
 
-• **Inglés:** B1 (certificado)
+• **English:** B1 (certified)
 
-• **Italiano:** En estudio (nivel usuario)
+• **Italian:** Studying (user level)
 
 
 ---
