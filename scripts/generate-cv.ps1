@@ -18,6 +18,32 @@ Write-Host "Repo root: $repoAbsolute"
 Write-Host "Output dir: $outputDirPath"
 Write-Host "Foto: $fotoPath (existe: $(Test-Path $fotoPath))"
 
+# Buscar xelatex en las rutas típicas de MiKTeX
+$xelatexCandidates = @(
+    "C:\Program Files\MiKTeX\miktex\bin\x64\xelatex.exe",
+    "C:\Program Files\MiKTeX\miktex\bin\xelatex.exe",
+    "C:\Program Files (x86)\MiKTeX\miktex\bin\xelatex.exe"
+)
+
+$xelatexPath = $null
+foreach ($candidate in $xelatexCandidates) {
+    if (Test-Path $candidate) {
+        $xelatexPath = $candidate
+        break
+    }
+}
+
+if (-not $xelatexPath) {
+    throw "No se encontró xelatex.exe. MiKTeX no está instalado correctamente."
+}
+
+Write-Host "xelatex encontrado en: $xelatexPath"
+
+# Añadir la carpeta de xelatex al PATH del proceso actual
+$xelatexDir = Split-Path -Parent $xelatexPath
+$env:Path = "$xelatexDir;$env:Path"
+Write-Host "PATH actualizado con: $xelatexDir"
+
 if (-not (Test-Path $outputDirPath)) {
     New-Item -ItemType Directory -Path $outputDirPath -Force | Out-Null
 }
@@ -270,11 +296,10 @@ Write-Host "Generado: $cvCubaPath"
 function Convert-MdToPdf {
     param(
         [string]$MdPath,
-        [string]$PdfPath,
-        [string]$PdfEngine = "xelatex"
+        [string]$PdfPath
     )
 
-    Write-Host "=== Convirtiendo $MdPath a PDF con $PdfEngine ==="
+    Write-Host "=== Convirtiendo $MdPath a PDF ==="
 
     if (-not (Test-Path $MdPath)) {
         throw "No existe el archivo fuente: $MdPath"
@@ -288,12 +313,11 @@ function Convert-MdToPdf {
         Remove-Item $absolutePdf -Force
     }
 
-    # Cambiar al directorio del .md para que las rutas relativas (como perfil.jpg) funcionen
     Push-Location $workingDir
     try {
         & pandoc (Split-Path -Leaf $absoluteMd) `
             -o (Split-Path -Leaf $absolutePdf) `
-            --pdf-engine=$PdfEngine `
+            --pdf-engine=xelatex `
             -V geometry:margin=2cm `
             -V fontsize=11pt `
             -V documentclass=article

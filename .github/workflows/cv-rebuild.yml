@@ -26,7 +26,7 @@ jobs:
             C:\Program Files\MiKTeX
             C:\Users\runneradmin\AppData\Local\MiKTeX
             C:\Users\runneradmin\AppData\Roaming\MiKTeX
-          key: miktex-${{ runner.os }}-${{ hashFiles('cv/cv-data.json') }}
+          key: miktex-${{ runner.os }}-v1
           restore-keys: |
             miktex-${{ runner.os }}-
 
@@ -37,7 +37,7 @@ jobs:
           choco install pandoc -y --no-progress
 
           # MiKTeX (si no está en caché)
-          if (-not (Test-Path "C:\Program Files\MiKTeX\miktex\bin\x64\pdflatex.exe")) {
+          if (-not (Test-Path "C:\Program Files\MiKTeX\miktex\bin\x64\xelatex.exe")) {
             Write-Host "MiKTeX no encontrado. Instalando..."
             choco install miktex -y --no-progress
           } else {
@@ -47,9 +47,13 @@ jobs:
           # Refrescar PATH
           $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 
-          # Verificar
-          & pandoc --version
-          & xelatex --version
+          # Verificar que xelatex existe
+          if (Test-Path "C:\Program Files\MiKTeX\miktex\bin\x64\xelatex.exe") {
+            Write-Host "xelatex encontrado."
+          } else {
+            Write-Host "xelatex NO encontrado. Buscando..."
+            Get-ChildItem -Path "C:\Program Files\MiKTeX" -Recurse -Filter "xelatex.exe" -ErrorAction SilentlyContinue | Select-Object FullName
+          }
 
       - name: Generar CVs
         shell: pwsh
