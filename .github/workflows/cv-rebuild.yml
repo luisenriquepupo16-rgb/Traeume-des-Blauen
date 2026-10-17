@@ -19,21 +19,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Instalar Pandoc
+      - name: Cache MiKTeX
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:\Program Files\MiKTeX
+            C:\Users\runneradmin\AppData\Local\MiKTeX
+            C:\Users\runneradmin\AppData\Roaming\MiKTeX
+          key: miktex-${{ runner.os }}-${{ hashFiles('cv/cv-data.json') }}
+          restore-keys: |
+            miktex-${{ runner.os }}-
+
+      - name: Instalar MiKTeX y Pandoc
         shell: pwsh
         run: |
+          # Pandoc
           choco install pandoc -y --no-progress
 
-      - name: Verificar Chrome
-        shell: pwsh
-        run: |
-          $chromePath = "C:\Program Files\Google\Chrome\Application\chrome.exe"
-          if (-not (Test-Path $chromePath)) {
-            Write-Host "Chrome no encontrado. Instalando..."
-            choco install googlechrome -y --no-progress
+          # MiKTeX (si no está en caché)
+          if (-not (Test-Path "C:\Program Files\MiKTeX\miktex\bin\x64\pdflatex.exe")) {
+            Write-Host "MiKTeX no encontrado. Instalando..."
+            choco install miktex -y --no-progress
           } else {
-            Write-Host "Chrome encontrado en $chromePath"
+            Write-Host "MiKTeX ya está instalado (desde caché)."
           }
+
+          # Refrescar PATH
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+
+          # Verificar
+          & pandoc --version
+          & xelatex --version
 
       - name: Generar CVs
         shell: pwsh
