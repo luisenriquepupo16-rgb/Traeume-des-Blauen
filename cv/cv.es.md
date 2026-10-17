@@ -2,7 +2,7 @@
 
 **Desarrollador Android | Kotlin · Jetpack Compose**
 
-Cuba · luisenriquepupo16\@gmail.com · [Portafolio](https://luisenriquepupo16-rgb.github.io/Traeume-des-Blauen)
+Cuba · [Portafolio](https://luisenriquepupo16-rgb.github.io/Traeume-des-Blauen)
 
 ---
 
@@ -64,11 +64,11 @@ Formación autodidacta desde los 14 años, principalmente en C++. Participación
 
 ## Idiomas
 
-- **Español:** Nativo
+• **Español:** Nativo
 
-- **Inglés:** B1 (certificado)
+• **Inglés:** B1 (certificado)
 
-- **Italiano:** En estudio (nivel usuario)
+• **Italiano:** En estudio (nivel usuario)
 
 
 ---
