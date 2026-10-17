@@ -32,6 +32,11 @@ jobs:
             xetex
             fontspec
             geometry
+            xcolor
+            booktabs
+            etoolbox
+            hyperref
+            parskip
 
       - name: Generar CVs
         shell: pwsh
