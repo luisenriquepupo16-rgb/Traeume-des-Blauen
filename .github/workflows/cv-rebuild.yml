@@ -1,5 +1,4 @@
 name: CV Rebuild
-
 on:
   workflow_dispatch:
   push:
@@ -8,22 +7,18 @@ on:
       - 'docs/content/*.json'
       - 'cv/cv-data.json'
       - 'cv/perfil.jpg'
-
 jobs:
   rebuild:
     runs-on: windows-latest
     permissions:
       contents: write
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Instalar Pandoc
         shell: pwsh
         run: |
           choco install pandoc -y --no-progress
-
       - name: Configurar TeX Live
         uses: TeX-Live/setup-texlive-action@v3
         with:
@@ -41,7 +36,6 @@ jobs:
             lm
             lmodern
             babel-spanish
-
       - name: Generar CVs
         shell: pwsh
         env:
@@ -54,13 +48,11 @@ jobs:
           CV_REFERENCIAS: ${{ secrets.CV_REFERENCIAS }}
         run: |
           ./scripts/generate-cv.ps1
-
       - name: Debug: mostrar cv-cuba.md
         shell: pwsh
         run: |
           Write-Host "=== Primeras 40 lineas de cv-cuba.md ==="
           Get-Content cv/cv-cuba.md -TotalCount 40 | ForEach-Object { Write-Host $_ }
-
       - name: Subir CVs públicos (md y pdf)
         shell: pwsh
         run: |
@@ -74,7 +66,6 @@ jobs:
             git pull --rebase origin main
             git push
           }
-
       - name: Enviar CV cubano a Discord
         shell: pwsh
         env:
@@ -84,11 +75,9 @@ jobs:
           $content = [System.IO.File]::ReadAllBytes("cv/cv-cuba.pdf")
           $boundary = [System.Guid]::NewGuid().ToString()
           $LF = "`r`n"
-
           $ms = New-Object System.IO.MemoryStream
           $writer = New-Object System.IO.StreamWriter($ms, [System.Text.UTF8Encoding]::new($false))
           $writer.NewLine = $LF
-
           $writer.WriteLine("--$boundary")
           $writer.WriteLine("Content-Disposition: form-data; name=`"content`"")
           $writer.WriteLine("")
@@ -98,16 +87,12 @@ jobs:
           $writer.WriteLine("Content-Type: application/pdf")
           $writer.WriteLine("")
           $writer.Flush()
-
           $ms.Write($content, 0, $content.Length)
           $ms.Flush()
-
           $writer.WriteLine("")
           $writer.WriteLine("--$boundary--")
           $writer.Flush()
           $writer.Dispose()
-
           $bytes = $ms.ToArray()
           $ms.Dispose()
-
           Invoke-RestMethod -Uri $webhook -Method Post -ContentType "multipart/form-data; boundary=$boundary" -Body $bytes
