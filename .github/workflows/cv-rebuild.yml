@@ -40,7 +40,6 @@ jobs:
             unicode-math
             lm
             lmodern
-            babel-spanish
 
       - name: Generar CVs
         shell: pwsh
@@ -54,12 +53,6 @@ jobs:
           CV_REFERENCIAS: ${{ secrets.CV_REFERENCIAS }}
         run: |
           ./scripts/generate-cv.ps1
-
-      - name: Debug: mostrar cv-cuba.md
-        shell: pwsh
-        run: |
-          Write-Host "=== Primeras 40 lineas de cv-cuba.md ==="
-          Get-Content cv/cv-cuba.md -TotalCount 40 | ForEach-Object { Write-Host $_ }
 
       - name: Subir CVs públicos (md y pdf)
         shell: pwsh
@@ -111,5 +104,3 @@ jobs:
           $ms.Dispose()
 
           Invoke-RestMethod -Uri $webhook -Method Post -ContentType "multipart/form-data; boundary=$boundary" -Body $bytes
-
-# Forzar reindex de GitHub Actions
