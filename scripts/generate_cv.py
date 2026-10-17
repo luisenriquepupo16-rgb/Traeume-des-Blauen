@@ -30,6 +30,7 @@ from datetime import date
 from pathlib import Path
 
 from fpdf import FPDF
+from fpdf.enums import XPos, YPos
 
 # ===== Configuración =====
 
@@ -83,7 +84,6 @@ def cargar_datos():
         print("[ERROR] No se pudo cargar cv-data.json. Abortando.")
         sys.exit(1)
 
-    # Resolver placeholders
     resuelto = {}
     for key, value in data.items():
         if isinstance(value, dict):
@@ -117,8 +117,6 @@ def cargar_opensource():
 def tiene_datos_basicos(datos, idioma):
     """Comprueba que el CV tiene los datos mínimos para generarse."""
     nombre = texto(datos.get("nombre_publico"))
-    email = texto(datos.get("email"))
-    portfolio = texto(datos.get("portfolio"))
     educacion = datos.get("educacion", {})
     carrera = texto(educacion.get("carrera"))
     universidad = texto(educacion.get("universidad"))
@@ -142,7 +140,8 @@ class CVPDF(FPDF):
             return
         self.set_font("Helvetica", "I", 8)
         self.set_text_color(128, 128, 128)
-        self.cell(0, 10, f"Página {self.page_no()}", align="C")
+        self.cell(0, 10, f"Pagina {self.page_no()}", align="C",
+                  new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         self.ln(10)
 
     def footer(self):
@@ -158,7 +157,7 @@ def add_seccion(pdf, titulo):
         pdf.add_page()
     pdf.set_font("Helvetica", "B", 12)
     pdf.set_text_color(46, 90, 136)
-    pdf.cell(0, 8, titulo, ln=True)
+    pdf.cell(0, 8, titulo, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.set_draw_color(201, 169, 97)
     pdf.line(pdf.get_x(), pdf.get_y(), pdf.get_x() + 190, pdf.get_y())
     pdf.ln(3)
@@ -181,7 +180,7 @@ def add_bullet(pdf, texto_str):
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(51, 51, 51)
     pdf.set_x(pdf.get_x() + 5)
-    pdf.multi_cell(0, 5, "• " + texto_str)
+    pdf.multi_cell(0, 5, "- " + texto_str)
     pdf.ln(1)
 
 
@@ -198,11 +197,13 @@ def generar_cv_es(datos, apps, opensource):
     # Cabecera
     pdf.set_font("Helvetica", "B", 20)
     pdf.set_text_color(46, 90, 136)
-    pdf.cell(0, 10, texto(datos.get("nombre_publico")), ln=True)
+    pdf.cell(0, 10, texto(datos.get("nombre_publico")),
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.set_font("Helvetica", "I", 12)
     pdf.set_text_color(92, 64, 51)
-    pdf.cell(0, 6, "Desarrollador Android | Kotlin · Jetpack Compose", ln=True)
+    pdf.cell(0, 6, "Desarrollador Android | Kotlin · Jetpack Compose",
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     contacto = []
     if texto(datos.get("ubicacion_publica")):
@@ -212,7 +213,8 @@ def generar_cv_es(datos, apps, opensource):
     if contacto:
         pdf.set_font("Helvetica", "", 9)
         pdf.set_text_color(128, 128, 128)
-        pdf.cell(0, 5, " · ".join(contacto), ln=True)
+        pdf.cell(0, 5, " · ".join(contacto),
+                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.ln(5)
 
     # Perfil
@@ -271,7 +273,8 @@ def generar_cv_es(datos, apps, opensource):
     pdf.ln(5)
     pdf.set_font("Helvetica", "I", 8)
     pdf.set_text_color(128, 128, 128)
-    pdf.cell(0, 5, f"Última actualización: {FECHA_HOY}", ln=True)
+    pdf.cell(0, 5, f"Ultima actualizacion: {FECHA_HOY}",
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     output = OUTPUT_DIR / "cv.es.pdf"
     pdf.output(str(output))
@@ -292,11 +295,13 @@ def generar_cv_en(datos, apps, opensource):
     # Header
     pdf.set_font("Helvetica", "B", 20)
     pdf.set_text_color(46, 90, 136)
-    pdf.cell(0, 10, texto(datos.get("nombre_publico")), ln=True)
+    pdf.cell(0, 10, texto(datos.get("nombre_publico")),
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.set_font("Helvetica", "I", 12)
     pdf.set_text_color(92, 64, 51)
-    pdf.cell(0, 6, "Android Developer | Kotlin · Jetpack Compose", ln=True)
+    pdf.cell(0, 6, "Android Developer | Kotlin · Jetpack Compose",
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     contacto = []
     if texto(datos.get("ubicacion_publica")):
@@ -306,7 +311,8 @@ def generar_cv_en(datos, apps, opensource):
     if contacto:
         pdf.set_font("Helvetica", "", 9)
         pdf.set_text_color(128, 128, 128)
-        pdf.cell(0, 5, " · ".join(contacto), ln=True)
+        pdf.cell(0, 5, " · ".join(contacto),
+                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.ln(5)
 
     # Profile
@@ -365,7 +371,8 @@ def generar_cv_en(datos, apps, opensource):
     pdf.ln(5)
     pdf.set_font("Helvetica", "I", 8)
     pdf.set_text_color(128, 128, 128)
-    pdf.cell(0, 5, f"Last update: {FECHA_HOY}", ln=True)
+    pdf.cell(0, 5, f"Last update: {FECHA_HOY}",
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     output = OUTPUT_DIR / "cv.en.pdf"
     pdf.output(str(output))
@@ -386,7 +393,8 @@ def generar_cv_cuba(datos):
     # Título
     pdf.set_font("Helvetica", "B", 18)
     pdf.set_text_color(0, 0, 0)
-    pdf.cell(0, 12, "CURRÍCULUM VITAE", align="C", ln=True)
+    pdf.cell(0, 12, "CURRICULUM VITAE", align="C",
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.ln(5)
 
     # Foto (si existe)
@@ -401,29 +409,29 @@ def generar_cv_cuba(datos):
     datos_generales = [
         ("Nombres y Apellidos", texto(datos.get("nombre_legal"))),
         ("Sexo", "M"),
-        ("Edad", f"{texto(datos.get('edad'))} años" if texto(datos.get("edad")) else ""),
+        ("Edad", f"{texto(datos.get('edad'))} anos" if texto(datos.get("edad")) else ""),
         ("Fecha de Nacimiento", texto(datos.get("fecha_nacimiento"))),
         ("Centro de Estudio", f"{texto(datos.get('educacion', {}).get('universidad'))}. {texto(datos.get('facultad'))}."),
         ("Cargo", "Estudiante"),
-        ("Dirección Particular", texto(datos.get("direccion"))),
-        ("Teléfono", f"Móvil: {texto(datos.get('telefono'))}" if texto(datos.get("telefono")) else ""),
+        ("Direccion Particular", texto(datos.get("direccion"))),
+        ("Telefono", f"Movil: {texto(datos.get('telefono'))}" if texto(datos.get("telefono")) else ""),
     ]
     for i, (label, valor) in enumerate(datos_generales, 1):
         if valor:
             add_texto(pdf, f"{i}. {label}: {valor}")
 
     # Formación
-    add_seccion(pdf, "FORMACIÓN")
+    add_seccion(pdf, "FORMACION")
     edu = datos.get("educacion", {})
-    add_texto(pdf, f"Cursando el cuarto año de la carrera {texto(edu.get('carrera'))} en la {texto(edu.get('universidad'))}. Actualmente en desarrollo de tesis de grado.")
+    add_texto(pdf, f"Cursando el cuarto ano de la carrera {texto(edu.get('carrera'))} en la {texto(edu.get('universidad'))}. Actualmente en desarrollo de tesis de grado.")
     pre = datos.get("preuniversitario", {})
     if texto(pre.get("nombre")):
-        add_texto(pdf, f"Graduado de enseñanza media-superior en el {texto(pre.get('nombre'))} en el año {texto(pre.get('año'))}.")
+        add_texto(pdf, f"Graduado de ensenanza media-superior en el {texto(pre.get('nombre'))} en el ano {texto(pre.get('ano'))}.")
     for logro in pre.get("logros", []):
         if texto(logro):
             add_bullet(pdf, texto(logro))
     if texto(datos.get("media")):
-        add_texto(pdf, f"Graduado de la enseñanza media en la {texto(datos.get('media'))}.")
+        add_texto(pdf, f"Graduado de la ensenanza media en la {texto(datos.get('media'))}.")
 
     # Aptitudes
     aptitudes = datos.get("aptitudes", [])
@@ -468,7 +476,8 @@ def generar_cv_cuba(datos):
     pdf.ln(5)
     pdf.set_font("Helvetica", "I", 8)
     pdf.set_text_color(128, 128, 128)
-    pdf.cell(0, 5, f"Fecha del Currículum: {FECHA_HOY}", ln=True)
+    pdf.cell(0, 5, f"Fecha del Curriculum: {FECHA_HOY}",
+             new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     output = OUTPUT_DIR / "cv-cuba.pdf"
     pdf.output(str(output))
@@ -488,7 +497,7 @@ def main():
 
     print(f"Apps: {len(apps)}")
     print(f"Open source: {len(opensource)}")
-    print(f"Foto: {'sí' if FOTO_PATH.exists() else 'no'}")
+    print(f"Foto: {'si' if FOTO_PATH.exists() else 'no'}")
 
     generar_cv_es(datos, apps, opensource)
     generar_cv_en(datos, apps, opensource)
