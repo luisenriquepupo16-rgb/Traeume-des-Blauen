@@ -8,10 +8,11 @@ on:
       - 'docs/content/*.json'
       - 'cv/cv-data.json'
       - 'cv/perfil.jpg'
+      - 'scripts/generate_cv.py'
 
 jobs:
   rebuild:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
@@ -19,30 +20,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Instalar Pandoc
-        shell: pwsh
-        run: |
-          choco install pandoc -y --no-progress
-
-      - name: Configurar TeX Live
-        uses: TeX-Live/setup-texlive-action@v3
+      - name: Configurar Python
+        uses: actions/setup-python@v5
         with:
-          packages: |
-            scheme-basic
-            xetex
-            fontspec
-            geometry
-            xcolor
-            booktabs
-            etoolbox
-            hyperref
-            parskip
-            unicode-math
-            lm
-            lmodern
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: |
+          pip install fpdf2
 
       - name: Generar CVs
-        shell: pwsh
         env:
           CV_NOMBRE_COMPLETO: ${{ secrets.CV_NOMBRE_COMPLETO }}
           CV_EDAD: ${{ secrets.CV_EDAD }}
@@ -52,71 +39,27 @@ jobs:
           CV_FACULTAD: ${{ secrets.CV_FACULTAD }}
           CV_REFERENCIAS: ${{ secrets.CV_REFERENCIAS }}
         run: |
-          ./scripts/generate-cv.ps1
+          python scripts/generate_cv.py
 
-      - name: Subir CVs públicos (md y pdf)
-        shell: pwsh
+      - name: Subir CVs públicos (pdf)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add cv/cv.es.md cv/cv.es.pdf cv/cv.en.md cv/cv.en.pdf
-          if (git diff --cached --quiet) {
-            Write-Host "Sin cambios en CVs públicos"
-          } else {
+          git add cv/cv.es.pdf cv/cv.en.pdf
+          if git diff --cached --quiet; then
+            echo "Sin cambios en CVs públicos"
+          else
             git commit -m "chore: regenerar CVs [skip ci]"
             git pull --rebase origin main
             git push
-          }
+          fi
 
-      - name: Enviar CV cubano a Discord (PDF + MD)
-        shell: pwsh
+      - name: Enviar CV cubano a Discord
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
-          $webhook = $env:DISCORD_WEBHOOK
-          $pdfContent = [System.IO.File]::ReadAllBytes("cv/cv-cuba.pdf")
-          $mdContent = [System.IO.File]::ReadAllBytes("cv/cv-cuba.md")
-          $boundary = [System.Guid]::NewGuid().ToString()
-          $LF = "`r`n"
-
-          $ms = New-Object System.IO.MemoryStream
-          $writer = New-Object System.IO.StreamWriter($ms, [System.Text.UTF8Encoding]::new($false))
-          $writer.NewLine = $LF
-
-          # Texto
-          $writer.WriteLine("--$boundary")
-          $writer.WriteLine("Content-Disposition: form-data; name=`"content`"")
-          $writer.WriteLine("")
-          $writer.WriteLine("CV cubano regenerado: $((Get-Date).ToString('yyyy-MM-dd'))")
-          $writer.Flush()
-
-          # PDF
-          $writer.WriteLine("--$boundary")
-          $writer.WriteLine("Content-Disposition: form-data; name=`"files[0]`"; filename=`"cv-cuba.pdf`"")
-          $writer.WriteLine("Content-Type: application/pdf")
-          $writer.WriteLine("")
-          $writer.Flush()
-
-          $ms.Write($pdfContent, 0, $pdfContent.Length)
-          $ms.Flush()
-
-          # MD
-          $writer.WriteLine("")
-          $writer.WriteLine("--$boundary")
-          $writer.WriteLine("Content-Disposition: form-data; name=`"files[1]`"; filename=`"cv-cuba.md`"")
-          $writer.WriteLine("Content-Type: text/markdown")
-          $writer.WriteLine("")
-          $writer.Flush()
-
-          $ms.Write($mdContent, 0, $mdContent.Length)
-          $ms.Flush()
-
-          $writer.WriteLine("")
-          $writer.WriteLine("--$boundary--")
-          $writer.Flush()
-          $writer.Dispose()
-
-          $bytes = $ms.ToArray()
-          $ms.Dispose()
-
-          Invoke-RestMethod -Uri $webhook -Method Post -ContentType "multipart/form-data; boundary=$boundary" -Body $bytes
+          WEBHOOK="$DISCORD_WEBHOOK"
+          FECHA=$(date -u +"%Y-%m-%d")
+          curl -s -X POST "$WEBHOOK" \
+            -F "content=CV cubano regenerado: $FECHA" \
+            -F "files[0]=@cv/cv-cuba.pdf"
