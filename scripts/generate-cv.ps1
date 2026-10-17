@@ -72,13 +72,16 @@ foreach ($logro in $data.preuniversitario.logros) {
     $logrosPre += "- $logro`n`n"
 }
 
+# Email como enlace (para que Pandoc no lo rompa)
+$emailMd = "[$($data.email)](mailto:$($data.email))"
+
 # ===== CV ESPAÑOL =====
 $cvEs = @"
 **$($data.nombre_publico)**
 
 **Desarrollador Android | Kotlin · Jetpack Compose**
 
-Cuba · $($data.email) · [Portafolio]($($data.portfolio))
+Cuba · $emailMd · [Portafolio]($($data.portfolio))
 
 ---
 
@@ -154,7 +157,7 @@ $cvEn = @"
 
 **Android Developer | Kotlin · Jetpack Compose**
 
-Cuba · $($data.email) · [Portfolio]($($data.portfolio))
+Cuba · $emailMd · [Portfolio]($($data.portfolio))
 
 ---
 
@@ -247,14 +250,13 @@ foreach ($d in $datos) {
 }
 
 $cvCuba = @"
-**CURRÍCULUM VITAE**
+## CURRÍCULUM VITAE
 
 $fotoMd
 
 ## I. DATOS GENERALES
 
 $datosMd
----
 
 ## FORMACIÓN
 
@@ -265,17 +267,13 @@ $datosMd
 $logrosPre
 - Graduado de la enseñanza media en la $($data.media).
 
----
-
 ## APTITUDES
 
 $aptitudesMd
----
 
 ## IDIOMA
 
 $idiomasMd
----
 
 ## INVESTIGACIONES Y PROYECTOS
 
@@ -283,7 +281,6 @@ $idiomasMd
 
 $proyectosMd
 - **Contribuciones open source:** $osMd
----
 
 **Fecha del Currículum:** $fechaHoy
 "@
