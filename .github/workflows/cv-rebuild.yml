@@ -68,13 +68,14 @@ jobs:
             git push
           }
 
-      - name: Enviar CV cubano a Discord
+      - name: Enviar CV cubano a Discord (PDF + MD)
         shell: pwsh
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           $webhook = $env:DISCORD_WEBHOOK
-          $content = [System.IO.File]::ReadAllBytes("cv/cv-cuba.pdf")
+          $pdfContent = [System.IO.File]::ReadAllBytes("cv/cv-cuba.pdf")
+          $mdContent = [System.IO.File]::ReadAllBytes("cv/cv-cuba.md")
           $boundary = [System.Guid]::NewGuid().ToString()
           $LF = "`r`n"
 
@@ -82,17 +83,32 @@ jobs:
           $writer = New-Object System.IO.StreamWriter($ms, [System.Text.UTF8Encoding]::new($false))
           $writer.NewLine = $LF
 
+          # Texto
           $writer.WriteLine("--$boundary")
           $writer.WriteLine("Content-Disposition: form-data; name=`"content`"")
           $writer.WriteLine("")
           $writer.WriteLine("CV cubano regenerado: $((Get-Date).ToString('yyyy-MM-dd'))")
+          $writer.Flush()
+
+          # PDF
           $writer.WriteLine("--$boundary")
-          $writer.WriteLine("Content-Disposition: form-data; name=`"file`"; filename=`"cv-cuba.pdf`"")
+          $writer.WriteLine("Content-Disposition: form-data; name=`"files[0]`"; filename=`"cv-cuba.pdf`"")
           $writer.WriteLine("Content-Type: application/pdf")
           $writer.WriteLine("")
           $writer.Flush()
 
-          $ms.Write($content, 0, $content.Length)
+          $ms.Write($pdfContent, 0, $pdfContent.Length)
+          $ms.Flush()
+
+          # MD
+          $writer.WriteLine("")
+          $writer.WriteLine("--$boundary")
+          $writer.WriteLine("Content-Disposition: form-data; name=`"files[1]`"; filename=`"cv-cuba.md`"")
+          $writer.WriteLine("Content-Type: text/markdown")
+          $writer.WriteLine("")
+          $writer.Flush()
+
+          $ms.Write($mdContent, 0, $mdContent.Length)
           $ms.Flush()
 
           $writer.WriteLine("")
