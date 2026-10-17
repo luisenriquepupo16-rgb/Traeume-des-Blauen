@@ -2,7 +2,7 @@
 
 **Android Developer | Kotlin · Jetpack Compose**
 
-Cuba · [luisenriquepupo16@gmail.com](mailto:luisenriquepupo16@gmail.com) · [Portfolio](https://luisenriquepupo16-rgb.github.io/Traeume-des-Blauen)
+Cuba · luisenriquepupo16\@gmail.com · [Portfolio](https://luisenriquepupo16-rgb.github.io/Traeume-des-Blauen)
 
 ---
 
@@ -46,13 +46,13 @@ Self-taught Android developer, currently in the final year of a Computer Enginee
 
 **Competitive Programming**
 
-Self-taught since age 14, mainly in C++. Participation in national events and in the ICPC.
+Self-taught since age 14, mainly in C\+\+. Participation in national events and in the ICPC.
 
 ---
 
 ## Technical Skills
 
-**Languages**: Kotlin, Python, C++, Java, Bash
+**Languages**: Kotlin, Python, C\+\+, Java, Bash
 
 **Android**: Jetpack Compose, View Binding, Material 3, Coroutines, Flow, Ktor, DataStore, WorkManager, Foreground Services, FileProvider
 
