@@ -116,14 +116,14 @@ def tiene_datos_basicos(datos, idioma):
 class CVPDF(FPDF):
     def __init__(self):
         super().__init__()
-        # Registrar la fuente DejaVu (regular y bold)
+        # Registrar la fuente DejaVu (solo regular y bold)
         self.add_font("DejaVu", "", FONT_REGULAR)
         self.add_font("DejaVu", "B", FONT_BOLD)
 
     def header(self):
         if self.page_no() == 1:
             return
-        self.set_font("DejaVu", "I", 8)
+        self.set_font("DejaVu", "", 8)
         self.set_text_color(128, 128, 128)
         self.cell(0, 10, f"Página {self.page_no()}", align="C",
                   new_x=XPos.LMARGIN, new_y=YPos.NEXT)
@@ -131,7 +131,7 @@ class CVPDF(FPDF):
 
     def footer(self):
         self.set_y(-15)
-        self.set_font("DejaVu", "I", 8)
+        self.set_font("DejaVu", "", 8)
         self.set_text_color(128, 128, 128)
         self.cell(0, 10, f"Generado el {FECHA_HOY}", align="C")
 
@@ -181,7 +181,7 @@ def generar_cv_es(datos, apps, opensource):
     pdf.cell(0, 10, texto(datos.get("nombre_publico")),
              new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
-    pdf.set_font("DejaVu", "I", 12)
+    pdf.set_font("DejaVu", "", 12)
     pdf.set_text_color(92, 64, 51)
     pdf.cell(0, 6, "Desarrollador Android | Kotlin · Jetpack Compose",
              new_x=XPos.LMARGIN, new_y=YPos.NEXT)
@@ -244,7 +244,7 @@ def generar_cv_es(datos, apps, opensource):
     add_texto(pdf, "Nota: residencia en Cuba, con conexión potencialmente intermitente.")
 
     pdf.ln(5)
-    pdf.set_font("DejaVu", "I", 8)
+    pdf.set_font("DejaVu", "", 8)
     pdf.set_text_color(128, 128, 128)
     pdf.cell(0, 5, f"Última actualización: {FECHA_HOY}",
              new_x=XPos.LMARGIN, new_y=YPos.NEXT)
@@ -270,7 +270,7 @@ def generar_cv_en(datos, apps, opensource):
     pdf.cell(0, 10, texto(datos.get("nombre_publico")),
              new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
-    pdf.set_font("DejaVu", "I", 12)
+    pdf.set_font("DejaVu", "", 12)
     pdf.set_text_color(92, 64, 51)
     pdf.cell(0, 6, "Android Developer | Kotlin · Jetpack Compose",
              new_x=XPos.LMARGIN, new_y=YPos.NEXT)
@@ -333,7 +333,7 @@ def generar_cv_en(datos, apps, opensource):
     add_texto(pdf, "Note: based in Cuba, where internet connection may be intermittent.")
 
     pdf.ln(5)
-    pdf.set_font("DejaVu", "I", 8)
+    pdf.set_font("DejaVu", "", 8)
     pdf.set_text_color(128, 128, 128)
     pdf.cell(0, 5, f"Last update: {FECHA_HOY}",
              new_x=XPos.LMARGIN, new_y=YPos.NEXT)
@@ -430,7 +430,7 @@ def generar_cv_cuba(datos):
             add_bullet(pdf, f"{proyecto} — {detalle}: {desc}")
 
     pdf.ln(5)
-    pdf.set_font("DejaVu", "I", 8)
+    pdf.set_font("DejaVu", "", 8)
     pdf.set_text_color(128, 128, 128)
     pdf.cell(0, 5, f"Fecha del Currículum: {FECHA_HOY}",
              new_x=XPos.LMARGIN, new_y=YPos.NEXT)
