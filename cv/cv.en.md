@@ -64,24 +64,24 @@ Self-taught since age 14, mainly in C plus plus. Participation in national event
 
 ## Languages
 
-- **Spanish:** Native
+• **Spanish:** Native
 
-- **English:** B1 (certified)
+• **English:** B1 (certified)
 
-- **Italian:** Studying (user level)
+• **Italian:** Studying (user level)
 
 
 ---
 
 ## Availability
 
-- **Mode**: remote, asynchronous.
+• **Mode**: remote, asynchronous.
 
-- **Hours**: 8 hours per day, flexible time slots.
+• **Hours**: 8 hours per day, flexible time slots.
 
-- **Note**: based in Cuba, where internet connection may be intermittent. I work well in goal-oriented setups.
+• **Note**: based in Cuba, where internet connection may be intermittent. I work well in goal-oriented setups.
 
-- **Travel**: limited availability, evaluated case by case.
+• **Travel**: limited availability, evaluated case by case.
 
 ---
 
