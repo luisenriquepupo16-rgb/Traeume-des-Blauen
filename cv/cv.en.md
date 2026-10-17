@@ -2,7 +2,7 @@
 
 **Android Developer | Kotlin · Jetpack Compose**
 
-Cuba · luisenriquepupo16@gmail.com · [Portfolio](https://luisenriquepupo16-rgb.github.io/Traeume-des-Blauen)
+Cuba · [luisenriquepupo16@gmail.com](mailto:luisenriquepupo16@gmail.com) · [Portfolio](https://luisenriquepupo16-rgb.github.io/Traeume-des-Blauen)
 
 ---
 
