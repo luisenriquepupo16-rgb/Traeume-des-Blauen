@@ -57,10 +57,30 @@ foreach ($item in $opensource.items) {
     $osMd += "- **$($item.project)** — $($item.detail): $($item.description)`n`n"
 }
 
-# Idiomas: párrafos con • manual, para que no se peguen
-$idiomasMd = ""
+# Idiomas para español (con • manual)
+$idiomasMdEs = ""
 foreach ($idioma in $data.idiomas) {
-    $idiomasMd += "• **$($idioma.idioma):** $($idioma.nivel)`n`n"
+    $idiomasMdEs += "• **$($idioma.idioma):** $($idioma.nivel)`n`n"
+}
+
+# Idiomas para inglés (traducidos, con • manual)
+$idiomasMdEn = ""
+foreach ($idioma in $data.idiomas) {
+    $nombre = $idioma.idioma
+    $nombreEn = switch ($nombre) {
+        "Español" { "Spanish" }
+        "Inglés" { "English" }
+        "Italiano" { "Italian" }
+        default { $nombre }
+    }
+    $nivel = $idioma.nivel
+    $nivelEn = switch -Regex ($nivel) {
+        "Nativo" { "Native" }
+        "B1 \(certificado\)" { "B1 (certified)" }
+        "En estudio \(nivel usuario\)" { "Studying (user level)" }
+        default { $nivel }
+    }
+    $idiomasMdEn += "• **$($nombreEn):** $($nivelEn)`n`n"
 }
 
 $aptitudesMd = ""
@@ -73,7 +93,7 @@ foreach ($logro in $data.preuniversitario.logros) {
     $logrosPre += "- $logro`n`n"
 }
 
-# ===== CV ESPAÑOL =====
+# ===== CV ESPAÑOL (sin cambios) =====
 $cvEs = @"
 **$($data.nombre_publico)**
 
@@ -127,7 +147,7 @@ Formación autodidacta desde los 14 años, principalmente en C++. Participación
 
 ## Idiomas
 
-$idiomasMd
+$idiomasMdEs
 ---
 
 ## Disponibilidad
@@ -149,7 +169,7 @@ $cvEsPath = Join-Path $outputDirPath "cv.es.md"
 Set-Content -Path $cvEsPath -Value $cvEs -Encoding UTF8
 Write-Host "Generado: $cvEsPath"
 
-# ===== CV INGLÉS =====
+# ===== CV INGLÉS (con cambios) =====
 $cvEn = @"
 **$($data.nombre_publico)**
 
@@ -185,13 +205,13 @@ $($data.educacion.año). Thesis in development.
 
 **Competitive Programming**
 
-Self-taught since age 14, mainly in `C++`. Participation in national events and in the ICPC.
+Self-taught since age 14, mainly in `` `C++` ``. Participation in national events and in the ICPC.
 
 ---
 
 ## Technical Skills
 
-**Languages**: Kotlin, Python, `C++`, Java, Bash
+**Languages**: Kotlin, Python, `` `C++` ``, Java, Bash
 
 **Android**: Jetpack Compose, View Binding, Material 3, Coroutines, Flow, Ktor, DataStore, WorkManager, Foreground Services, FileProvider
 
@@ -203,7 +223,7 @@ Self-taught since age 14, mainly in `C++`. Participation in national events and 
 
 ## Languages
 
-$idiomasMd
+$idiomasMdEn
 ---
 
 ## Availability
@@ -225,7 +245,7 @@ $cvEnPath = Join-Path $outputDirPath "cv.en.md"
 Set-Content -Path $cvEnPath -Value $cvEn -Encoding UTF8
 Write-Host "Generado: $cvEnPath"
 
-# ===== CV CUBA =====
+# ===== CV CUBA (sin cambios) =====
 $fotoMd = ""
 if (Test-Path $fotoPath) {
     $fotoMd = "![Foto de perfil](perfil.jpg)`n`n"
@@ -271,7 +291,7 @@ $aptitudesMd
 
 ## IDIOMA
 
-$idiomasMd
+$idiomasMdEs
 
 ## INVESTIGACIONES Y PROYECTOS
 
@@ -292,7 +312,8 @@ Write-Host "Generado: $cvCubaPath"
 function Convert-MdToPdf {
     param(
         [string]$MdPath,
-        [string]$PdfPath
+        [string]$PdfPath,
+        [switch]$NoHardLineBreaks
     )
 
     Write-Host "=== Convirtiendo $MdPath a PDF ==="
@@ -311,13 +332,20 @@ function Convert-MdToPdf {
 
     Push-Location $workingDir
     try {
-        & pandoc (Split-Path -Leaf $absoluteMd) `
-            -o (Split-Path -Leaf $absolutePdf) `
-            --pdf-engine=xelatex `
-            --from=markdown+hard_line_breaks `
-            -V geometry:margin=2cm `
-            -V fontsize=11pt `
-            -V documentclass=article
+        $pandocArgs = @(
+            (Split-Path -Leaf $absoluteMd),
+            "-o", (Split-Path -Leaf $absolutePdf),
+            "--pdf-engine=xelatex",
+            "-V", "geometry:margin=2cm",
+            "-V", "fontsize=11pt",
+            "-V", "documentclass=article"
+        )
+
+        if (-not $NoHardLineBreaks) {
+            $pandocArgs += "--from=markdown+hard_line_breaks"
+        }
+
+        & pandoc @pandocArgs
 
         if ($LASTEXITCODE -ne 0) {
             throw "Pandoc falló (exit $LASTEXITCODE)"
@@ -339,8 +367,13 @@ function Convert-MdToPdf {
 }
 
 # Generar PDFs
+# Español: con hard_line_breaks (funciona bien)
 Convert-MdToPdf -MdPath $cvEsPath -PdfPath (Join-Path $outputDirPath "cv.es.pdf")
-Convert-MdToPdf -MdPath $cvEnPath -PdfPath (Join-Path $outputDirPath "cv.en.pdf")
+
+# Inglés: sin hard_line_breaks (para que los bullets no se peguen)
+Convert-MdToPdf -MdPath $cvEnPath -PdfPath (Join-Path $outputDirPath "cv.en.pdf") -NoHardLineBreaks
+
+# Cubano: con hard_line_breaks (funciona bien, salvo los caracteres raros)
 Convert-MdToPdf -MdPath $cvCubaPath -PdfPath (Join-Path $outputDirPath "cv-cuba.pdf")
 
 Write-Host "=== Todos los CVs generados correctamente ==="
