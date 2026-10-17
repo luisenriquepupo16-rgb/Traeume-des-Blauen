@@ -46,35 +46,35 @@ $facultad = Resolve-Placeholder $data.facultad
 
 $fechaHoy = (Get-Date).ToString("dd/MM/yyyy")
 
-# Lista de proyectos (con \n simple, no \n\n)
+# Listas con \n\n para separar items
 $proyectosMd = ""
 foreach ($app in $catalog.apps) {
-    $proyectosMd += "- **$($app.name)**: $($app.description)`n"
+    $proyectosMd += "- **$($app.name)**: $($app.description)`n`n"
 }
 
 $osMd = ""
 foreach ($item in $opensource.items) {
-    $osMd += "- **$($item.project)** — $($item.detail): $($item.description)`n"
+    $osMd += "- **$($item.project)** — $($item.detail): $($item.description)`n`n"
 }
 
 $idiomasMd = ""
 foreach ($idioma in $data.idiomas) {
-    $idiomasMd += "- **$($idioma.idioma):** $($idioma.nivel)`n"
+    $idiomasMd += "- **$($idioma.idioma):** $($idioma.nivel)`n`n"
 }
 
 $aptitudesMd = ""
 foreach ($apt in $data.aptitudes) {
-    $aptitudesMd += "- $apt`n"
+    $aptitudesMd += "- $apt`n`n"
 }
 
 $logrosPre = ""
 foreach ($logro in $data.preuniversitario.logros) {
-    $logrosPre += "- $logro`n"
+    $logrosPre += "- $logro`n`n"
 }
 
 # ===== CV ESPAÑOL =====
 $cvEs = @"
-# $($data.nombre_publico)
+**$($data.nombre_publico)**
 
 **Desarrollador Android | Kotlin · Jetpack Compose**
 
@@ -101,9 +101,13 @@ $osMd
 ## Educación
 
 **$($data.educacion.carrera)** — $($data.educacion.universidad)
+
 $($data.educacion.año). Tesis en desarrollo.
 
+---
+
 **Programación competitiva**
+
 Formación autodidacta desde los 14 años, principalmente en C++. Participación en eventos nacionales y en el ICPC.
 
 ---
@@ -111,8 +115,11 @@ Formación autodidacta desde los 14 años, principalmente en C++. Participación
 ## Habilidades técnicas
 
 **Lenguajes**: Kotlin, Python, C++, Java, Bash
+
 **Android**: Jetpack Compose, View Binding, Material 3, Coroutines, Flow, Ktor, DataStore, WorkManager, Foreground Services, FileProvider
+
 **Backend y automatización**: GitHub Actions, CI/CD, Cloudflare Workers, Gist API
+
 **Herramientas**: Git, GitHub CLI, Gradle, PowerShell, Linux, REST APIs
 
 ---
@@ -125,8 +132,11 @@ $idiomasMd
 ## Disponibilidad
 
 - **Modalidad**: remota, asíncrona.
+
 - **Horas**: 8 horas diarias en franjas flexibles.
+
 - **Nota**: residencia en Cuba, con conexión potencialmente intermitente. Trabajo bien en modalidades orientadas a objetivos.
+
 - **Viajes**: disponibilidad limitada, se evalúa caso por caso.
 
 ---
@@ -140,7 +150,7 @@ Write-Host "Generado: $cvEsPath"
 
 # ===== CV INGLÉS =====
 $cvEn = @"
-# $($data.nombre_publico)
+**$($data.nombre_publico)**
 
 **Android Developer | Kotlin · Jetpack Compose**
 
@@ -167,9 +177,13 @@ $osMd
 ## Education
 
 **$($data.educacion.carrera)** — $($data.educacion.universidad)
+
 $($data.educacion.año). Thesis in development.
 
+---
+
 **Competitive Programming**
+
 Self-taught since age 14, mainly in C++. Participation in national events and in the ICPC.
 
 ---
@@ -177,8 +191,11 @@ Self-taught since age 14, mainly in C++. Participation in national events and in
 ## Technical Skills
 
 **Languages**: Kotlin, Python, C++, Java, Bash
+
 **Android**: Jetpack Compose, View Binding, Material 3, Coroutines, Flow, Ktor, DataStore, WorkManager, Foreground Services, FileProvider
+
 **Backend & Automation**: GitHub Actions, CI/CD, Cloudflare Workers, Gist API
+
 **Tools**: Git, GitHub CLI, Gradle, PowerShell, Linux, REST APIs
 
 ---
@@ -191,8 +208,11 @@ $idiomasMd
 ## Availability
 
 - **Mode**: remote, asynchronous.
+
 - **Hours**: 8 hours per day, flexible time slots.
+
 - **Note**: based in Cuba, where internet connection may be intermittent. I work well in goal-oriented setups.
+
 - **Travel**: limited availability, evaluated case by case.
 
 ---
@@ -207,7 +227,7 @@ Write-Host "Generado: $cvEnPath"
 # ===== CV CUBA =====
 $fotoMd = ""
 if (Test-Path $fotoPath) {
-    $fotoMd = "![Foto de perfil](perfil.jpg)`n"
+    $fotoMd = "![Foto de perfil](perfil.jpg)`n`n"
 }
 
 $datosMd = ""
@@ -223,11 +243,11 @@ $datos = @(
 )
 
 foreach ($d in $datos) {
-    $datosMd += "$($d.num). **$($d.label):** $($d.valor)`n"
+    $datosMd += "$($d.num). **$($d.label):** $($d.valor)`n`n"
 }
 
 $cvCuba = @"
-# CURRÍCULUM VITAE
+**CURRÍCULUM VITAE**
 
 $fotoMd
 
@@ -243,7 +263,6 @@ $datosMd
 - Graduado de enseñanza media-superior en el $($data.preuniversitario.nombre) en el año $($data.preuniversitario.año).
 
 $logrosPre
-
 - Graduado de la enseñanza media en la $($data.media).
 
 ---
@@ -300,10 +319,11 @@ function Convert-MdToPdf {
         & pandoc (Split-Path -Leaf $absoluteMd) `
             -o (Split-Path -Leaf $absolutePdf) `
             --pdf-engine=xelatex `
+            --from=markdown+hard_line_breaks `
             -V geometry:margin=2cm `
             -V fontsize=11pt `
             -V documentclass=article `
-            -V mainfont="Arial"
+            -V mainfont="DejaVu Sans"
 
         if ($LASTEXITCODE -ne 0) {
             throw "Pandoc falló (exit $LASTEXITCODE)"
