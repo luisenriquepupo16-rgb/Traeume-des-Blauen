@@ -57,9 +57,10 @@ foreach ($item in $opensource.items) {
     $osMd += "- **$($item.project)** — $($item.detail): $($item.description)`n`n"
 }
 
+# Idiomas: párrafos con • manual, para que no se peguen
 $idiomasMd = ""
 foreach ($idioma in $data.idiomas) {
-    $idiomasMd += "- **$($idioma.idioma):** $($idioma.nivel)`n`n"
+    $idiomasMd += "• **$($idioma.idioma):** $($idioma.nivel)`n`n"
 }
 
 $aptitudesMd = ""
@@ -72,16 +73,13 @@ foreach ($logro in $data.preuniversitario.logros) {
     $logrosPre += "- $logro`n`n"
 }
 
-# Email escapado para que Pandoc no lo rompa
-$emailEscapado = $data.email -replace '@', '\@'
-
 # ===== CV ESPAÑOL =====
 $cvEs = @"
 **$($data.nombre_publico)**
 
 **Desarrollador Android | Kotlin · Jetpack Compose**
 
-Cuba · $emailEscapado · [Portafolio]($($data.portfolio))
+Cuba · [Portafolio]($($data.portfolio))
 
 ---
 
@@ -157,7 +155,7 @@ $cvEn = @"
 
 **Android Developer | Kotlin · Jetpack Compose**
 
-Cuba · $emailEscapado · [Portfolio]($($data.portfolio))
+Cuba · [Portfolio]($($data.portfolio))
 
 ---
 
@@ -187,13 +185,13 @@ $($data.educacion.año). Thesis in development.
 
 **Competitive Programming**
 
-Self-taught since age 14, mainly in C\+\+. Participation in national events and in the ICPC.
+Self-taught since age 14, mainly in `C++`. Participation in national events and in the ICPC.
 
 ---
 
 ## Technical Skills
 
-**Languages**: Kotlin, Python, C\+\+, Java, Bash
+**Languages**: Kotlin, Python, `C++`, Java, Bash
 
 **Android**: Jetpack Compose, View Binding, Material 3, Coroutines, Flow, Ktor, DataStore, WorkManager, Foreground Services, FileProvider
 
@@ -288,12 +286,6 @@ $proyectosMd
 $cvCubaPath = Join-Path $outputDirPath "cv-cuba.md"
 Set-Content -Path $cvCubaPath -Value $cvCuba -Encoding UTF8
 Write-Host "Generado: $cvCubaPath"
-
-# ===== LIMPIAR CARACTERES RAROS DEL CV CUBANO =====
-$cvCubaContent = Get-Content $cvCubaPath -Raw
-$cvCubaContent = $cvCubaContent -replace '(?m)^[\s¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ]+$', ''
-Set-Content -Path $cvCubaPath -Value $cvCubaContent -Encoding UTF8
-Write-Host "Limpiado cv-cuba.md de caracteres raros"
 
 # ===== GENERAR PDFs CON LATEX =====
 
