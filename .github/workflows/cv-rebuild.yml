@@ -46,23 +46,44 @@ jobs:
         run: |
           python scripts/generate_cv.py
 
-      - name: Subir CVs públicos (pdf)
+      - name: Publicar CV español en release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add cv/cv.es.pdf cv/cv.en.pdf
-          if git diff --cached --quiet; then
-            echo "Sin cambios en CVs públicos"
-          else
-            git commit -m "chore: regenerar CVs [skip ci]"
-            git pull --rebase origin main
-            git push
+          if [ ! -f cv/cv.es.pdf ]; then
+            echo "No existe cv.es.pdf. No se publica release."
+            exit 0
           fi
+
+          TAG="cv-es"
+          TITULO="CV español (actualizado)"
+          NOTAS="CV español generado automáticamente por el workflow CV Rebuild."
+
+          # Borrar el release anterior si existe (y su tag)
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Borrando release anterior: $TAG"
+            gh release delete "$TAG" --yes --cleanup-tag
+          fi
+
+          # Crear el release nuevo
+          gh release create "$TAG" \
+            --title "$TITULO" \
+            --notes "$NOTAS" \
+            --latest
+
+          # Subir el PDF
+          gh release upload "$TAG" cv/cv.es.pdf
+          echo "Publicado: cv.es.pdf en el release $TAG"
 
       - name: Enviar CV cubano a Discord
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
+          if [ ! -f cv/cv-cuba.pdf ]; then
+            echo "No existe cv/cv-cuba.pdf. No se envía a Discord."
+            exit 0
+          fi
+
           WEBHOOK="$DISCORD_WEBHOOK"
           FECHA=$(date -u +"%Y-%m-%d")
           curl -s -X POST "$WEBHOOK" \
