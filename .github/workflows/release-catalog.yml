@@ -21,7 +21,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Install powershell-yaml
         shell: pwsh
@@ -50,6 +50,7 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           $appIds = '${{ steps.detect.outputs.changed_apps }}' | ConvertFrom-Json
           foreach ($appId in $appIds) {
@@ -83,6 +84,74 @@ jobs:
               continue
             }
 
+            # Obtener tag anterior (si existe) para sacar los commits entre versiones
+            $prevTag = $null
+            try {
+              $prevTag = gh release list --limit 100 --json tagName --jq ".[] | select(.tagName | startswith(`"$appId`_v`")) | .tagName" 2>$null | Select-Object -First 1
+            } catch { }
+            if ($prevTag) {
+              Write-Host "Tag anterior: $prevTag"
+            } else {
+              Write-Host "No hay tag anterior para esta app."
+            }
+
+            # Obtener commits entre tags (o todos los commits si no hay tag anterior)
+            $commitRange = if ($prevTag) { "$prevTag..$tag" } else { "HEAD" }
+            $commits = git log --pretty=format:"%s" $commitRange 2>$null
+            $commitText = ($commits -join "`n").Trim()
+
+            if ([string]::IsNullOrWhiteSpace($commitText)) {
+              $commitText = "No hay commits nuevos para esta versión."
+            }
+
+            # Construir prompt para Gemini
+            $prompt = @"
+Eres un asistente que escribe notas de release profesionales para una aplicación Android llamada "$appName".
+
+A continuación se muestran los mensajes de commit (en bruto) entre la versión anterior y la nueva versión $version:
+
+$commitText
+
+Tu tarea:
+1. Reescribe estos mensajes en notas de release limpias, profesionales y bien redactadas, en español.
+2. Agrupa los cambios por tipo: "Nuevas funcionalidades", "Correcciones" y "Mejoras".
+3. No inventes características que no estén en los commits.
+4. Si un commit es ambiguo o no aporta información, omítelo.
+5. El resultado debe ser un texto en Markdown, listo para pegar en GitHub Releases.
+
+Notas de release:
+"@
+
+            # Llamar a Gemini 3.8 Flash
+            $notes = "Release automático de $appName versión $version"
+            if ($env:GEMINI_API_KEY) {
+              try {
+                $geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=$env:GEMINI_API_KEY"
+                $body = @{
+                  contents = @(
+                    @{
+                      parts = @(
+                        @{ text = $prompt }
+                      )
+                    }
+                  )
+                } | ConvertTo-Json -Depth 10
+
+                $response = Invoke-RestMethod -Uri $geminiUrl -Method Post -Body $body -ContentType "application/json" -TimeoutSec 60
+                $candidate = $response.candidates[0].content.parts[0].text
+                if (-not [string]::IsNullOrWhiteSpace($candidate)) {
+                  $notes = $candidate.Trim()
+                  Write-Host "Notas de release generadas por Gemini." -ForegroundColor Green
+                } else {
+                  Write-Warning "Gemini devolvió una respuesta vacía. Usando fallback."
+                }
+              } catch {
+                Write-Warning "Error al llamar a Gemini: $($_.Exception.Message). Usando fallback."
+              }
+            } else {
+              Write-Warning "No hay GEMINI_API_KEY configurada. Usando fallback."
+            }
+
             # Ver si el release ya existe
             $existing = gh release view $tag 2>$null
             if ($LASTEXITCODE -eq 0) {
@@ -95,7 +164,7 @@ jobs:
             $releaseArgs = @(
               "release", "create", $tag,
               "--title", "$appName $version",
-              "--notes", "Release automatico de $appName version $version",
+              "--notes", $notes,
               "--latest"
             )
 
