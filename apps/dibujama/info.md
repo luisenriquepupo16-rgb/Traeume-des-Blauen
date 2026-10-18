@@ -6,7 +6,7 @@ package: com.dibujama.app
 category: Galería
 min_android: 8.0
 min_sdk: 26
-target_sdk: 34
+target_sdk: 36
 technologies:
   - Kotlin
   - Jetpack Compose
