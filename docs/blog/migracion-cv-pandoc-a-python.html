@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Cómo migré el generador de CVs de PowerShell + Pandoc + XeLaTeX a Python + fpdf2.">
+    <meta name="author" content="Dreamer (Luisi)">
+    <title>Cómo migré el generador de CVs de PowerShell a Python — Dreamer</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="../shared.css">
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span class="theme-icon">🌙</span>
+    <span class="theme-label">Modo oscuro</span>
+</button>
+
+<nav class="internal-nav" aria-label="Navegación">
+    <a href="../index.html" class="back">← Volver al portafolio</a>
+    <a href="index.html">Blog</a>
+</nav>
+
+<article class="article">
+
+    <header class="article-header">
+        <p class="article-meta">Octubre 2026 · Automatización</p>
+        <h1>Cómo migré el generador de CVs de PowerShell a Python</h1>
+    </header>
+
+    <div class="article-content">
+
+        <p>Durante meses, el generador de CVs de mi portafolio funcionó con PowerShell, Pandoc y XeLaTeX. Convertía archivos Markdown a PDF, y los publicaba automáticamente. Era potente, pero frágil. Cada vez que añadía un carácter especial, o un bullet, o una tilde, algo se rompía. Y cada arreglo era un parche que duraba hasta el siguiente carácter especial.</p>
+
+        <p>Hoy he migrado todo a Python, con <code>fpdf2</code>. Y el resultado es un sistema más simple, más rápido, y más robusto. Este es el relato de por qué lo hice, y qué aprendí por el camino.</p>
+
+        <h2>El problema: tres herramientas, tres fuentes de bugs</h2>
+
+        <p>El sistema anterior tenía tres capas:</p>
+
+        <ul>
+            <li><strong>PowerShell</strong>: generaba los archivos Markdown con los datos del CV.</li>
+            <li><strong>Pandoc</strong>: convertía el Markdown a PDF.</li>
+            <li><strong>XeLaTeX</strong>: el motor de PDF, con soporte de Unicode.</li>
+        </ul>
+
+        <p>Cada capa añadía complejidad, y cada capa tenía sus propios bugs. Los caracteres raros al cambiar de página venían de XeLaTeX. Los bullets que se pegaban venían de Pandoc. El <code>C++</code> que se convertía en matemáticas venía de Pandoc. Y el encoding de PowerShell, que convertía los <code>•</code> en <code>â€¢</code>, venía de PowerShell.</p>
+
+        <p>Arreglar un bug era fácil. Arreglar los tres, a la vez, sin romper nada, era imposible.</p>
+
+        <h2>La decisión: una sola herramienta, Python</h2>
+
+        <p>La solución no fue encontrar la herramienta perfecta, sino <strong>elegir la que tiene los bugs que puedo manejar</strong>. Python, con <code>fpdf2</code>, tiene menos capas. Genera el PDF directamente, sin Markdown intermedio, sin Pandoc, sin XeLaTeX. Y eso significa menos sitios donde algo puede romperse.</p>
+
+        <p>El nuevo script hace tres cosas:</p>
+
+        <ol>
+            <li>Lee los datos del CV desde <code>cv-data.json</code>.</li>
+            <li>Lee los proyectos desde <code>catalog.json</code>, y las contribuciones desde <code>opensource.json</code>.</li>
+            <li>Genera los PDFs con <code>fpdf2</code>, usando la fuente <code>DejaVu Sans</code> para soportar Unicode.</li>
+        </ol>
+
+        <p>Y nada más. Sin Markdown, sin Pandoc, sin LaTeX. Solo Python, y una librería de PDF.</p>
+
+        <h2>Lo que aprendí</h2>
+
+        <p>Tres lecciones:</p>
+
+        <ol>
+            <li><strong>Menos capas, menos bugs.</strong> Cada herramienta que añades es una fuente de problemas. Si puedes hacer lo mismo con una sola, hazlo.</li>
+            <li><strong>La fuente importa.</strong> <code>Helvetica</code> solo soporta Latin-1, y eso excluye los bullets, los guiones largos, y las tildes. <code>DejaVu Sans</code> soporta Unicode completo, y con eso desaparecen la mitad de los problemas.</li>
+            <li><strong>El contenido también importa.</strong> Un CV cubano con descripciones largas de cada app ocupa dos páginas, y los bullets se pegan al cambiar de página. Un CV cubano con solo los nombres de las apps ocupa una página, y los bullets se separan solos.</li>
+        </ol>
+
+        <h2>El resultado</h2>
+
+        <p>El CV español está terminado. Sin caracteres raros, con tildes, con bullets, con guiones largos, con <code>C++</code>. El CV cubano es funcional, y se envía a Discord. Y el CV inglés no se genera, porque no hay datos en inglés.</p>
+
+        <p>El workflow es más simple: Ubuntu en lugar de Windows, Python en lugar de PowerShell, <code>fpdf2</code> en lugar de Pandoc y XeLaTeX. Y los PDFs se publican en un release, no en el repo, para evitar conflictos de merge.</p>
+
+        <p>No es perfecto. Pero es más simple, y eso es lo que importa.</p>
+
+    </div>
+
+</article>
+
+<nav class="article-nav">
+    <a href="index.html">← Todas las entradas</a>
+</nav>
+
+<footer class="main-footer">
+    <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
+</footer>
+
+<script src="../shared.js"></script>
+
+</body>
+</html>

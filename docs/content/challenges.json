@@ -38,6 +38,27 @@
       "context": "El botón \"Cancelar\" del diálogo cerraba el diálogo, pero la descarga seguía en segundo plano. Al terminar, el archivo aparecía completo.",
       "solution": "El botón \"Cancelar\" envía una señal al servicio (ACTION_CANCEL), que cancela el Job de la corrutina y borra el archivo parcial.",
       "lesson": "\"Cancelar\" en una UI no es solo cerrar el diálogo. Es detener el proceso real."
+    },
+    {
+      "id": "caracteres_raros_fpdf2",
+      "title": "Caracteres raros al cambiar de página en fpdf2",
+      "context": "Al generar un PDF con fpdf2, aparecía un bloque de caracteres de control (¡ ¢ £ ¤ ¥...) al principio de cada página, pero solo en el CV cubano, no en el español. La diferencia: el cubano tenía un encabezado centrado con cell(align='C'), el español no.",
+      "solution": "Sustituir el cell con align='C' por un multi_cell con align='L'. El cell movía el cursor a una posición que, al cambiar de página, hacía que fpdf2 escribiera el bloque de control. El multi_cell alineado a la izquierda no movía el cursor, y los caracteres raros desaparecían.",
+      "lesson": "En fpdf2, no uses cell con align='C' para encabezados. Usa multi_cell con align='L' o 'C'. El cell mueve el cursor a una posición que, al cambiar de página, genera caracteres raros."
+    },
+    {
+      "id": "converty_cortado_fpdf2",
+      "title": "El texto de Converty se cortaba al cambiar de página",
+      "context": "En el CV cubano, el texto de Converty (una descripción larga) se cortaba a la mitad, y los bullets siguientes se pegaban en una línea. El will_page_break no lo detectaba, porque el texto era más largo que el espacio que quedaba.",
+      "solution": "Simplificar el CV cubano: en lugar de listar las apps con descripción, listarlas solo con el nombre. Eso reduce el contenido, y evita el corte. El texto de Converty ocupa una línea, y los bullets se separan solos.",
+      "lesson": "Si un texto largo se corta al cambiar de página, no luches con will_page_break. Simplifica el contenido. Un CV con solo los nombres de las apps es más legible, y más robusto, que uno con descripciones largas."
+    },
+    {
+      "id": "cplusplus_pandoc",
+      "title": "Pandoc convertía C++ en matemáticas",
+      "context": "Al convertir un Markdown con C++ a PDF con Pandoc y XeLaTeX, el C++ se convertía en \\(\\mathrm{C + + }\\), porque Pandoc interpretaba el + como un operador matemático. Ni los backticks, ni el escape C\\+\\+, ni C plus plus lo arreglaban.",
+      "solution": "Migrar de Pandoc + XeLaTeX a fpdf2. fpdf2 no interpreta el + como matemáticas, y el C++ sale bien, como texto plano.",
+      "lesson": "Pandoc es potente, pero tiene reglas de Markdown que no siempre son las que esperas. Si un carácter especial se rompe, y no hay forma de escaparlo, cambia de herramienta. fpdf2 no tiene ese problema."
     }
   ]
 }

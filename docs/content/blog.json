@@ -55,6 +55,16 @@
       "category": "Automatización",
       "excerpt": "Cómo construir un monitor que busca ofertas de empleo remoto en Remotive y Telegram, las filtra por relevancia, y las envía a Discord sin repetir las ya vistas.",
       "featured": false
+    },
+    {
+      "id": "migracion-cv-pandoc-a-python",
+      "title": "Cómo migré el generador de CVs de PowerShell a Python",
+      "url": "blog/migracion-cv-pandoc-a-python.html",
+      "date": "2026-10-17",
+      "date_label": "Octubre 2026",
+      "category": "Automatización",
+      "excerpt": "El generador de CVs funcionaba con PowerShell, Pandoc y XeLaTeX, pero era frágil. Lo migré a Python con fpdf2, y el resultado es más simple, más rápido, y más robusto.",
+      "featured": true
     }
   ]
 }
