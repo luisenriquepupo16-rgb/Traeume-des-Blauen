@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://luisenriquepupo16-rgb.github.io/Traeume-des-Blauen/sitemap.xml

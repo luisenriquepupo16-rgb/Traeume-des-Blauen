@@ -252,8 +252,29 @@
 <!-- Footer -->
 <footer class="main-footer">
     <p>Dreamer · Träume des Blauen · Cuba · <span id="year"></span></p>
+    <p style="margin-top: 8px; font-size: 0.85rem; font-family: var(--font-mono);">
+        <span id="havana-clock">🇨🇺 --:--:--</span>
+    </p>
     <p class="footer-tagline">Aplicaciones sencillas, útiles y hechas con claridad.</p>
 </footer>
+
+<!-- ============================================================ -->
+<!-- MODAL DEL CAFÉ (Broma / CTA)                                 -->
+<!-- ============================================================ -->
+<div class="coffee-modal" id="coffeeModal">
+    <div class="coffee-modal-content">
+        <h3>☕ Gracias, pero...</h3>
+        <p>Lo que de verdad necesito no es un café, es un trabajo. Si te ha gustado lo que haces aquí, échale un ojo a mi CV o escríbeme. Prometo no morder.</p>
+        <a href="https://github.com/luisenriquepupo16-rgb/Traeume-des-Blauen/releases/download/cv-es/cv.es.pdf" target="_blank" rel="noopener" class="btn-primary" style="margin-bottom: 12px; display: inline-block;">Descargar CV</a>
+        <br>
+        <button id="coffeeClose" style="background: none; border: none; color: var(--text-muted); text-decoration: underline; cursor: pointer; font-family: inherit; font-size: 0.9rem;">Cerrar (y seguir soñando)</button>
+    </div>
+</div>
+
+<!-- Botón flotante del café -->
+<button class="coffee-bubble" id="coffeeBubble" aria-label="Invítame a un café">
+    <span>☕</span>
+</button>
 
 <!-- ============================================================ -->
 <!-- CHAT FLOTANTE                                                -->

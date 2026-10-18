@@ -1227,3 +1227,89 @@ button:focus-visible {
     .chat-msg { animation: none; }
     .chat-msg-typing .dot { animation: none; opacity: 0.6; }
 }
+
+/* ================================================================
+   BOTÓN DEL CAFÉ (Broma / CTA)
+   ================================================================ */
+
+.coffee-bubble {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--wood);
+    border: 3px solid var(--gold);
+    color: var(--surface);
+    cursor: pointer;
+    box-shadow: var(--shadow-hover);
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition);
+    font-size: 1.6rem;
+}
+
+.coffee-bubble:hover {
+    transform: scale(1.08) rotate(-10deg);
+    background: var(--wood-dark);
+}
+
+.coffee-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+
+.coffee-modal.coffee-modal-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.coffee-modal-content {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: var(--shadow-hover);
+    transform: translateY(20px);
+    transition: transform 0.25s ease;
+}
+
+.coffee-modal.coffee-modal-open .coffee-modal-content {
+    transform: translateY(0);
+}
+
+.coffee-modal-content h3 {
+    color: var(--gold);
+    font-size: 1.5rem;
+    margin-bottom: 16px;
+}
+
+.coffee-modal-content p {
+    color: var(--text-muted);
+    margin-bottom: 24px;
+    font-size: 1.05rem;
+    line-height: 1.6;
+}
+
+@media (max-width: 700px) {
+    .coffee-bubble {
+        bottom: 16px;
+        left: 16px;
+        width: 52px;
+        height: 52px;
+        font-size: 1.4rem;
+    }
+}

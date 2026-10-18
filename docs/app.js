@@ -104,7 +104,59 @@ function initTheme() {
 }
 
 // ================================================================
-// 4. CARGA DEL CATÁLOGO Y DESCARGAS
+// 4. RELOJ DE LA HABANA
+// ================================================================
+function initClock() {
+    const el = document.getElementById("havana-clock");
+    if (!el) return;
+
+    function update() {
+        try {
+            const now = new Date();
+            const formatter = new Intl.DateTimeFormat('es-ES', {
+                timeZone: 'America/Havana',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            el.textContent = `🇨🇺 ${formatter.format(now)} (Cuba)`;
+        } catch (e) {
+            el.textContent = "🇨🇺 Hora no disponible";
+        }
+    }
+
+    update();
+    setInterval(update, 1000);
+}
+
+// ================================================================
+// 5. MODAL DEL CAFÉ
+// ================================================================
+function initCoffee() {
+    const btn = document.getElementById("coffeeBubble");
+    const modal = document.getElementById("coffeeModal");
+    const close = document.getElementById("coffeeClose");
+
+    if (!btn || !modal || !close) return;
+
+    btn.addEventListener("click", () => {
+        modal.classList.add("coffee-modal-open");
+    });
+
+    close.addEventListener("click", () => {
+        modal.classList.remove("coffee-modal-open");
+    });
+
+    modal.addEventListener("click", (e) => {
+        if (e.target === modal) {
+            modal.classList.remove("coffee-modal-open");
+        }
+    });
+}
+
+// ================================================================
+// 6. CARGA DEL CATÁLOGO Y DESCARGAS
 // ================================================================
 async function loadCatalog() {
     return loadJson(CATALOG_URL);
@@ -123,7 +175,7 @@ async function loadDownloads() {
 }
 
 // ================================================================
-// 5. RENDERIZADO DE PROYECTOS PUBLICADOS
+// 7. RENDERIZADO DE PROYECTOS PUBLICADOS
 // ================================================================
 function renderProjects(apps, downloads) {
     const grid = document.getElementById("projectsGrid");
@@ -177,7 +229,7 @@ function renderProjects(apps, downloads) {
 }
 
 // ================================================================
-// 6. RENDERIZADO DE RETOS TÉCNICOS (vitrina)
+// 8. RENDERIZADO DE RETOS TÉCNICOS (vitrina)
 // ================================================================
 function renderChallengesPreview(data) {
     if (!data) return;
@@ -202,7 +254,7 @@ function renderChallengesPreview(data) {
 }
 
 // ================================================================
-// 7. RENDERIZADO DE OPEN SOURCE (vitrina completa)
+// 9. RENDERIZADO DE OPEN SOURCE (vitrina completa)
 // ================================================================
 function renderOpensourcePreview(data) {
     if (!data) return;
@@ -224,7 +276,7 @@ function renderOpensourcePreview(data) {
 }
 
 // ================================================================
-// 8. RENDERIZADO DEL BLOG (vitrina)
+// 10. RENDERIZADO DEL BLOG (vitrina)
 // ================================================================
 function renderBlogPreview(data) {
     if (!data) return;
@@ -251,7 +303,7 @@ function renderBlogPreview(data) {
 }
 
 // ================================================================
-// 9. RENDERIZADO DE PROYECTOS EN PROGRESO (vitrina)
+// 11. RENDERIZADO DE PROYECTOS EN PROGRESO (vitrina)
 // ================================================================
 function renderInProgressPreview(data) {
     if (!data) return;
@@ -282,7 +334,7 @@ function renderInProgressPreview(data) {
 }
 
 // ================================================================
-// 10. RENDERIZADO DE APRENDIZAJE (vitrina)
+// 12. RENDERIZADO DE APRENDIZAJE (vitrina)
 // ================================================================
 function renderLearningPreview(data) {
     if (!data) return;
@@ -323,7 +375,7 @@ function renderLearningPreview(data) {
 }
 
 // ================================================================
-// 11. CHAT FLOTANTE
+// 13. CHAT FLOTANTE
 // ================================================================
 
 const Chat = {
@@ -573,10 +625,12 @@ const Chat = {
 };
 
 // ================================================================
-// 12. INICIALIZACIÓN
+// 14. INICIALIZACIÓN
 // ================================================================
 async function init() {
     initTheme();
+    initClock();
+    initCoffee();
     document.getElementById("year").textContent = new Date().getFullYear();
     Chat.init();
 
