@@ -1,0 +1,46 @@
+name: Link Checker
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Lunes a las 6:00 UTC
+  workflow_dispatch:
+
+jobs:
+  check-links:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install requests
+
+      - name: Ejecutar verificador de enlaces
+        id: checker
+        run: |
+          python scripts/check_links.py > report.txt 2>&1 || true
+          echo "=== REPORTE ==="
+          cat report.txt
+
+      - name: Enviar reporte a Discord
+        if: always()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ ! -s report.txt ]; then
+            echo "Reporte vacío, no se envía."
+            exit 0
+          fi
+
+          FECHA=$(date -u +"%Y-%m-%d")
+          curl -s -X POST "$DISCORD_WEBHOOK" \
+            -F "content=🔗 **Reporte de enlaces** — $FECHA" \
+            -F "file=@report.txt"
