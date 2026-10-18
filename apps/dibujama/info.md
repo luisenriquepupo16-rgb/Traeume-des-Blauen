@@ -1,7 +1,7 @@
 ---
 name: Dibujama
-version: 1.1.0
-version_code: 2
+version: 1.1.1
+version_code: 3
 package: com.dibujama.app
 category: Galería
 min_android: 8.0
