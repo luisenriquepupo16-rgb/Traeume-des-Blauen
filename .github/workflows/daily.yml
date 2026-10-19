@@ -1,0 +1,36 @@
+name: Daily Tasks
+
+on:
+  schedule:
+    - cron: '0 5 * * *'   # 5:00 UTC = 1:00 AM en Cuba (UTC-4)
+  workflow_dispatch:
+
+jobs:
+  send-tasks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Instalar dependencias
+        run: pip install requests
+
+      - name: Enviar tareas del día y actualizar JSON
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python scripts/send_daily.py
+
+      - name: Commit y push del JSON actualizado
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/assets/tasks.json
+          if git diff --cached --quiet; then
+            echo "Sin cambios en tasks.json"
+          else
+            git commit -m "chore: eliminar tareas del día [skip ci]"
+            git push
+          fi

@@ -60,6 +60,7 @@ Pendings/
 # ===== Scripts de automatización local =====
 # Scripts que no forman parte del repositorio público
 push.ps1
+tasker.py
 
 # ============================================================
 # EXCEPCIONES (deben ir al final)
